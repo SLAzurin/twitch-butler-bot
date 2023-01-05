@@ -1,0 +1,19 @@
+{
+  "name": "ban-negate",
+  "version": "0.1.0",
+  "description": "",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "ts-node index.ts"
+  },
+  "author": "SLAzurin",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^18.11.18",
+    "@types/websocket": "^1.0.5"
+  },
+  "dependencies": {
+    "websocket": "^1.0.34"
+  }
+}
