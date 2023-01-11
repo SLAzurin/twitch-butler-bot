@@ -1,16 +1,3 @@
 version: "2.4"
 
 services:
-  node:
-    image: node:18-bullseye-slim
-    entrypoint: bash
-    env_file:
-      - .env
-    volumes:
-      - ./:/root/src
-    working_dir: /root/src
-    command:
-      - -c
-      # - npx ts-node main.ts
-      # - tail -f /dev/null
-      - bash
