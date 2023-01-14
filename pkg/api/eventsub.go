@@ -3,31 +3,37 @@ package api
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/slazurin/twitch-ban-negate/pkg/data"
 	"golang.org/x/net/websocket"
 )
 
-var messageCh = make(chan string)
 var location = "wss://eventsub-beta.wss.twitch.tv/ws"
-var newSessionID = ""
+
+// var newSessionID = ""
 var sessionID = ""
 var msgHistory = make(map[string]data.EventSubMessage)
+var logeventsub = log.New(os.Stdout, "EVENTSUB ", log.Ldate|log.Ltime)
 
 func Run(exitCh *chan struct{}) {
 	defer func() { *exitCh <- struct{}{} }()
-	log.Println("Connecting to", location)
+
+	go runIRC(exitCh)
+
+	logeventsub.Println("Connecting to", location)
 
 	ws, err := websocket.Dial(location, "", "http://localhost/")
 	if err != nil {
-		log.Println("Failed to connect to wss")
+		logeventsub.Println("Failed to connect to wss")
 		return
 	}
 	for {
-		var msg = make([]byte, 512)
+		var msg = make([]byte, 1024)
 		var n int
 		if n, err = ws.Read(msg); err != nil {
 			break
@@ -41,18 +47,21 @@ func processEventSub(ws *websocket.Conn, msg []byte, n int) {
 	var esMsg = data.EventSubMessage{}
 	err := json.Unmarshal(msg[:n], &esMsg)
 	if err != nil {
-		log.Println("Failed to unmarshal", string(msg[:]), err)
+		logeventsub.Println("Failed to unmarshal", string(msg[:n]), err)
 		return
 	}
-	// TODO: Add if statement to check if msgID already in there before processing
+	if _, ok := msgHistory[esMsg.Metadata.MessageID]; ok {
+		return
+	}
 	msgHistory[esMsg.Metadata.MessageID] = esMsg
 
-	switch esMsg.Metadata.MessageType {
-	case "session_welcome":
+	switch {
+	case esMsg.Metadata.MessageType == "session_welcome":
 		handleSessionWelcome(ws, esMsg)
+	case esMsg.Metadata.MessageType == "notification" && esMsg.Metadata.SubscriptionType == "channel.ban":
+		handleBan(ws, esMsg)
 	default:
-		esMsgStr, err := json.Marshal(esMsg)
-		log.Println("not processed", string(esMsgStr), err)
+		logeventsub.Println("not processed", string(msg[:n]), err)
 	}
 }
 
@@ -62,7 +71,7 @@ func clearHistory() {
 
 func handleSessionWelcome(ws *websocket.Conn, esm data.EventSubMessage) {
 	if esm.Payload.Session.Status != "connected" {
-		log.Println("Failed to connect at session_welcome")
+		logeventsub.Println("Failed to connect at session_welcome")
 		return
 	}
 
@@ -70,14 +79,15 @@ func handleSessionWelcome(ws *websocket.Conn, esm data.EventSubMessage) {
 		sessionID = esm.Payload.Session.ID
 	}
 
-	body, err := json.Marshal(data.EventSubRequestWebsocket{
+	// This never errors below.
+	body, _ := json.Marshal(data.EventSubRequestWebsocket{
 		Type:    "channel.ban",
 		Version: "1",
 		Condition: struct {
 			BroadcasterUserID string "json:\"broadcaster_user_id\""
 		}{
 			BroadcasterUserID: data.AppCfg.TwitchTargetChannel,
-		}, 
+		},
 		Transport: struct {
 			Method    string "json:\"method\""
 			SessionID string "json:\"session_id\""
@@ -89,11 +99,11 @@ func handleSessionWelcome(ws *websocket.Conn, esm data.EventSubMessage) {
 
 	client := &http.Client{}
 
-	log.Println(string(body))
+	logeventsub.Println(string(body))
 
 	req, err := http.NewRequest("POST", "https://api.twitch.tv/helix/eventsub/subscriptions", bytes.NewBuffer(body))
 	if err != nil {
-		log.Println("Failed to create req client to sub topics.")
+		logeventsub.Println("Failed to create req client to sub topics.")
 		return
 	}
 	req.Header.Add("Client-ID", data.AppCfg.TwitchAccountClientID)
@@ -102,11 +112,22 @@ func handleSessionWelcome(ws *websocket.Conn, esm data.EventSubMessage) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Println("Failed to subscribe to channel.ban", err)
+		logeventsub.Println("Failed to subscribe to channel.ban", err)
 		return
 	}
-	respBody, _ := ioutil.ReadAll(resp.Body)
+	respBody, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
-	log.Println("Subscribe to channel.ban", string(respBody))
+	logeventsub.Println("Subscribe to channel.ban", string(respBody))
 
+}
+
+func handleBan(ws *websocket.Conn, esm data.EventSubMessage) {
+	if strings.Contains(data.AppCfg.EvilMods, esm.Payload.Event.ModeratorUserLogin) && strings.Contains(data.AppCfg.AutoUnbans, esm.Payload.Event.UserLogin) {
+		if esm.Payload.Event.IsPermanant {
+			msgChan<-chat("/unban " + esm.Payload.Event.UserLogin)
+		} else {
+			msgChan<-chat("/untimeout " + esm.Payload.Event.UserLogin)
+		}
+		// fluff here
+	}
 }
