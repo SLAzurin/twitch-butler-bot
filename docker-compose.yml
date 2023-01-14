@@ -1,3 +1,10 @@
 version: "2.4"
 
 services:
+  twitch-ban-negate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
