@@ -10,8 +10,7 @@ import (
 )
 
 func main() {
-	var cfg = data.ConfigDatabase{}
-	err := cleanenv.ReadEnv(&cfg)
+	err := cleanenv.ReadConfig(".env", &data.AppCfg)
 	if err != nil {
 		log.Println(".env failed to parse")
 		os.Exit(1)
