@@ -45,9 +45,11 @@ func chat(s string) string {
 }
 
 func Run(exitCh *chan struct{}) {
+	var rawConn *websocket.Conn
+	var err error
 	for irc == nil {
 		time.Sleep(time.Second * time.Duration(connectRetries))
-		rawConn, err := websocket.Dial(host, "", "http://localhost/")
+		rawConn, err = websocket.Dial(host, "", "http://localhost/")
 		if err != nil {
 			if connectRetries > 128 {
 				logirc.Println("Last retry took 128s and still didn't reconnect")
@@ -62,7 +64,7 @@ func Run(exitCh *chan struct{}) {
 			} else {
 				connectRetries *= 2
 			}
-
+			continue
 		}
 		connectRetries = 0
 		irc = &IRCConn{Conn: rawConn}
@@ -74,20 +76,20 @@ func Run(exitCh *chan struct{}) {
 	*msgChan <- "NICK " + data.AppCfg.TwitchAccount
 	*msgChan <- "JOIN " + data.AppCfg.TwitchChannel
 
-	var err error
 	for {
 		var msg = make([]byte, 1024)
 		var n int
 		if n, err = irc.Conn.Read(msg); err != nil {
 			break
 		}
-		go processIRC(irc, msg, n)
+		stringmsg := string(msg[:n])
+		for _, v := range strings.Split(stringmsg, "\r\n") {
+			go processIRC(irc, v, n)
+		}
 	}
 }
 
-func processIRC(irc *IRCConn, msg []byte, n int) {
-	var incoming = string(msg[:n])
-
+func processIRC(irc *IRCConn, incoming string, n int) {
 	switch {
 	case strings.HasPrefix(incoming, "PING"):
 		*msgChan <- strings.Replace(incoming, "PING", "PONG", 1)
@@ -102,13 +104,16 @@ func processIRC(irc *IRCConn, msg []byte, n int) {
 	}
 }
 
-func handleBan(s string) {
-	if strings.Contains(data.AppCfg.EvilMods, esm.Payload.Event.ModeratorUserLogin) && strings.Contains(data.AppCfg.AutoUnbans, esm.Payload.Event.UserLogin) {
-		logirc.Println("Unbanning " + esm.Payload.Event.UserLogin + " banned by " + esm.Payload.Event.ModeratorUserLogin)
-		if esm.Payload.Event.IsPermanant {
-			*msgChan <- chat("/unban " + esm.Payload.Event.UserLogin)
+func handleBan(msg string) {
+	bannedUser := msg[strings.LastIndex(msg, ":")+1:]
+	perm := !strings.HasPrefix(msg, "@ban-duration=")
+
+	if strings.Contains(data.AppCfg.AutoUnbans, bannedUser) {
+		logirc.Println("Unbanning " + bannedUser)
+		if perm {
+			*msgChan <- chat("/unban " + bannedUser)
 		} else {
-			*msgChan <- chat("/untimeout " + esm.Payload.Event.UserLogin)
+			*msgChan <- chat("/untimeout " + bannedUser)
 		}
 		// fluff here
 	}
