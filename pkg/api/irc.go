@@ -19,15 +19,19 @@ var logirc = log.New(os.Stdout, "IRC ", log.Ldate|log.Ltime)
 var irc *IRCConn = nil
 var connectRetries = 0
 
-var msgChan = make(chan string)
+var msgChan *chan string
 
 func init() {
+	var c = make(chan string)
+	msgChan = &c
 	go func() {
 		for {
 			if irc == nil {
 				continue
 			}
-			irc.IRCMessage(<-msgChan)
+			var s = <-*msgChan
+			logirc.Println("Send: " + s)
+			irc.IRCMessage(s)
 		}
 	}()
 }
@@ -37,7 +41,7 @@ func (irc *IRCConn) IRCMessage(s string) {
 }
 
 func chat(s string) string {
-	return "PRIVMSG " + data.AppCfg.TwitchChannel + ":" + s
+	return "PRIVMSG " + data.AppCfg.TwitchChannel + " :" + s
 }
 
 func runIRC(exitCh *chan struct{}) {
@@ -65,17 +69,14 @@ func runIRC(exitCh *chan struct{}) {
 	}
 
 	// Login here
-	msgChan <- "PASS oauth:" + data.AppCfg.TwitchPassword
-	msgChan <- "NICK " + data.AppCfg.TwitchAccount
-	go func() {
-		time.Sleep(3 * time.Second)
-		msgChan <- "JOIN " + data.AppCfg.TwitchChannel
-		msgChan <- chat("I am connected")
-	}()
+	*msgChan <- "CAP REQ :twitch.tv/membership twitch.tv/tags twitch.tv/commands"
+	*msgChan <- "PASS oauth:" + data.AppCfg.TwitchPassword
+	*msgChan <- "NICK " + data.AppCfg.TwitchAccount
+	*msgChan <- "JOIN " + data.AppCfg.TwitchChannel
 
 	var err error
 	for {
-		var msg = make([]byte, 512)
+		var msg = make([]byte, 1024)
 		var n int
 		if n, err = irc.Conn.Read(msg); err != nil {
 			break
@@ -89,7 +90,8 @@ func processIRC(irc *IRCConn, msg []byte, n int) {
 
 	switch {
 	case strings.HasPrefix(incoming, "PING"):
-		msgChan <- strings.Replace(incoming, "PING", "PONG", 1)
+		*msgChan <- strings.Replace(incoming, "PING", "PONG", 1)
+		logirc.Println(strings.Replace(incoming, "PING", "PONG", 1))
 	default:
 		logirc.Println(incoming)
 	}

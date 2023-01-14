@@ -60,6 +60,8 @@ func processEventSub(ws *websocket.Conn, msg []byte, n int) {
 		handleSessionWelcome(ws, esMsg)
 	case esMsg.Metadata.MessageType == "notification" && esMsg.Metadata.SubscriptionType == "channel.ban":
 		handleBan(ws, esMsg)
+	case esMsg.Metadata.MessageType == "session_keepalive":
+		// should not do anything
 	default:
 		logeventsub.Println("not processed", string(msg[:n]), err)
 	}
@@ -123,10 +125,11 @@ func handleSessionWelcome(ws *websocket.Conn, esm data.EventSubMessage) {
 
 func handleBan(ws *websocket.Conn, esm data.EventSubMessage) {
 	if strings.Contains(data.AppCfg.EvilMods, esm.Payload.Event.ModeratorUserLogin) && strings.Contains(data.AppCfg.AutoUnbans, esm.Payload.Event.UserLogin) {
+		logeventsub.Println("Unbanning " + esm.Payload.Event.UserLogin + " banned by " + esm.Payload.Event.ModeratorUserLogin)
 		if esm.Payload.Event.IsPermanant {
-			msgChan<-chat("/unban " + esm.Payload.Event.UserLogin)
+			*msgChan <- chat("/unban " + esm.Payload.Event.UserLogin)
 		} else {
-			msgChan<-chat("/untimeout " + esm.Payload.Event.UserLogin)
+			*msgChan <- chat("/untimeout " + esm.Payload.Event.UserLogin)
 		}
 		// fluff here
 	}
