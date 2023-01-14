@@ -12,8 +12,11 @@ import (
 func main() {
 	err := cleanenv.ReadConfig(".env", &data.AppCfg)
 	if err != nil {
-		log.Println(".env failed to parse")
-		os.Exit(1)
+		err = cleanenv.ReadEnv(&data.AppCfg)
+		if err != nil {
+			log.Println("Failed to load env.")
+			os.Exit(1)
+		}
 	}
 
 	var exitCh = make(chan struct{}, 1)
