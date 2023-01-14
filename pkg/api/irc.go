@@ -44,7 +44,7 @@ func chat(s string) string {
 	return "PRIVMSG " + data.AppCfg.TwitchChannel + " :" + s
 }
 
-func runIRC(exitCh *chan struct{}) {
+func Run(exitCh *chan struct{}) {
 	for irc == nil {
 		time.Sleep(time.Second * time.Duration(connectRetries))
 		rawConn, err := websocket.Dial(host, "", "http://localhost/")
@@ -92,7 +92,24 @@ func processIRC(irc *IRCConn, msg []byte, n int) {
 	case strings.HasPrefix(incoming, "PING"):
 		*msgChan <- strings.Replace(incoming, "PING", "PONG", 1)
 		logirc.Println(strings.Replace(incoming, "PING", "PONG", 1))
+	case strings.HasPrefix(incoming, "@ban-duration="):
+		fallthrough
+	case strings.Contains(incoming, " CLEARCHAT "):
+		// handleBan("@ban-duration=1;room-id=254067565;target-user-id=19609203;tmi-sent-ts=1673678936710 :tmi.twitch.tv CLEARCHAT #sangnope :omnoloko")
+		handleBan(incoming)
 	default:
 		logirc.Println(incoming)
+	}
+}
+
+func handleBan(s string) {
+	if strings.Contains(data.AppCfg.EvilMods, esm.Payload.Event.ModeratorUserLogin) && strings.Contains(data.AppCfg.AutoUnbans, esm.Payload.Event.UserLogin) {
+		logirc.Println("Unbanning " + esm.Payload.Event.UserLogin + " banned by " + esm.Payload.Event.ModeratorUserLogin)
+		if esm.Payload.Event.IsPermanant {
+			*msgChan <- chat("/unban " + esm.Payload.Event.UserLogin)
+		} else {
+			*msgChan <- chat("/untimeout " + esm.Payload.Event.UserLogin)
+		}
+		// fluff here
 	}
 }
