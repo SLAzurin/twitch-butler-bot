@@ -1,7 +1,7 @@
 version: "2.4"
 
 services:
-  twitch-ban-negate:
+  twitch-butler-bot:
     build:
       context: .
       dockerfile: Dockerfile

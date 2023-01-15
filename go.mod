@@ -1,4 +1,4 @@
-module github.com/slazurin/twitch-ban-negate
+module github.com/slazurin/twitch-butler-bot
 
 go 1.19
 

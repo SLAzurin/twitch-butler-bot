@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/ilyakaznacheev/cleanenv"
-	"github.com/slazurin/twitch-ban-negate/pkg/api"
-	"github.com/slazurin/twitch-ban-negate/pkg/data"
+	"github.com/slazurin/twitch-butler-bot/pkg/api"
+	"github.com/slazurin/twitch-butler-bot/pkg/data"
 )
 
 func main() {

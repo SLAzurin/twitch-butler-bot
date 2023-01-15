@@ -9,7 +9,7 @@ package api
 // 	"os"
 // 	"strings"
 
-// 	"github.com/slazurin/twitch-ban-negate/pkg/data"
+// 	"github.com/slazurin/twitch-butler-bot/pkg/data"
 // 	"golang.org/x/net/websocket"
 // )
 
