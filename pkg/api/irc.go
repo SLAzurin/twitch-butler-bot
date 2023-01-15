@@ -18,9 +18,10 @@ var host = "wss://irc-ws.chat.twitch.tv"
 var logirc = log.New(os.Stdout, "IRC ", log.Ldate|log.Ltime)
 var irc *IRCConn = nil
 var connectRetries = 0
-var autosr = false
+var autosr = true
 
 var msgChan *chan string
+var rewardsMap *map[string]string
 
 func init() {
 	var c = make(chan string)
@@ -48,6 +49,8 @@ func chat(s string, channel string) string {
 func Run(exitCh *chan struct{}) {
 	var rawConn *websocket.Conn
 	var err error
+	rewardsMap = IdentityParser(data.AppCfg.AutoSongRequestID)
+
 	for irc == nil {
 		time.Sleep(time.Second * time.Duration(connectRetries))
 		rawConn, err = websocket.Dial(host, "", "http://localhost/")
@@ -86,7 +89,6 @@ func Run(exitCh *chan struct{}) {
 		stringmsg := string(msg[:n])
 		for _, v := range strings.Split(stringmsg, "\r\n") {
 			if v != "" {
-				logirc.Println(v)
 				go processIRC(irc, v, n)
 			}
 		}
@@ -130,21 +132,24 @@ func processIRC(irc *IRCConn, incoming string, n int) {
 	}
 }
 
-func IdentityParser(identity string) map[string]string {
+func IdentityParser(identity string) *map[string]string {
 	r := make(map[string]string)
+	if !strings.Contains(identity, ";") {
+		v := strings.Split(identity, "=")
+		r[v[0]] = v[1]
+		return &r
+	}
+
 	for _, group := range strings.Split(identity, ";") {
 		v := strings.Split(group, "=")
 		r[v[0]] = v[1]
 	}
-	return r
+	return &r
 }
 
 func handleRewards(identity string, incomingChannel string, user string, actualMesage string) {
-	rewardsMap := IdentityParser(identity)
-	if _, ok := rewardsMap[incomingChannel]; !ok {
-		return
-	}
-	if !strings.Contains(identity, rewardsMap[incomingChannel]) {
+	identityMap := IdentityParser(identity)
+	if (*identityMap)["custom-reward-id"] != (*rewardsMap)[incomingChannel] {
 		return
 	}
 	// Per channel implementation. For now only Erica's
@@ -156,6 +161,11 @@ func handleRewards(identity string, incomingChannel string, user string, actualM
 func handleCommand(incomingChannel string, user string, acutalMessage string) {
 	if strings.HasPrefix(acutalMessage, "!autosr") {
 		autosr = !autosr
+		if autosr {
+			*msgChan <- chat("autosr is now on", incomingChannel)
+		} else {
+			*msgChan <- chat("autosr is now off", incomingChannel)
+		}
 	}
 }
 
