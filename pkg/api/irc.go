@@ -159,12 +159,14 @@ func handleRewards(identity string, incomingChannel string, user string, actualM
 }
 
 func handleCommand(incomingChannel string, user string, acutalMessage string) {
-	if strings.HasPrefix(acutalMessage, "!autosr") || strings.HasPrefix(acutalMessage, "!togglesr") {
-		autosr = !autosr
-		if autosr {
-			*msgChan <- chat("autosr is now on", incomingChannel)
-		} else {
-			*msgChan <- chat("autosr is now off", incomingChannel)
+	if incomingChannel == "#ericarei" {
+		if strings.HasPrefix(acutalMessage, "!autosr") || strings.HasPrefix(acutalMessage, "!togglesr") {
+			autosr = !autosr
+			if autosr {
+				*msgChan <- chat("autosr is now on", incomingChannel)
+			} else {
+				*msgChan <- chat("autosr is now off", incomingChannel)
+			}
 		}
 	}
 }
