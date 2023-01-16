@@ -2,6 +2,7 @@ package api
 
 import (
 	"log"
+	"math/rand"
 	"os"
 	"strings"
 	"time"
@@ -186,5 +187,19 @@ func handleBan(rawmsg string, channel string) {
 			*msgChan <- chat("/untimeout "+bannedUser, channel)
 		}
 		// fluff here
+		*msgChan <- chat(GetRandomUnbanPhrase(), channel)
+
 	}
+}
+
+var randomUnbanPhrase = []string{
+	"Y U GOTTA B LIEK DIS LARRY ericareiGun",
+	"No unethical bans here ericareiKnife",
+	"No ban! ericareiPout",
+	"Unbanned. ericareiGiggle",
+}
+
+func GetRandomUnbanPhrase() string {
+	rand.Seed(time.Now().UnixNano())
+	return randomUnbanPhrase[rand.Intn(len(randomUnbanPhrase))]
 }
