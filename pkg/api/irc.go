@@ -181,7 +181,7 @@ func handleBan(rawmsg string, channel string) {
 
 	if strings.Contains(data.AppCfg.AutoUnbans, bannedUser) {
 		logirc.Println("Unbanning " + bannedUser)
-		time.Sleep(time.Second)
+		time.Sleep(time.Second * 2)
 		if perm {
 			*msgChan <- chat("/unban "+bannedUser, channel)
 		} else {
