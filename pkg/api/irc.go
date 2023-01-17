@@ -19,10 +19,8 @@ var host = "wss://irc-ws.chat.twitch.tv"
 var logirc = log.New(os.Stdout, "IRC ", log.Ldate|log.Ltime)
 var irc *IRCConn = nil
 var connectRetries = 0
-var autosr = true
 
 var msgChan *chan string
-var rewardsMap *map[string]string
 
 func init() {
 	var c = make(chan string)
@@ -50,7 +48,6 @@ func chat(s string, channel string) string {
 func Run(exitCh *chan struct{}) {
 	var rawConn *websocket.Conn
 	var err error
-	rewardsMap = IdentityParser(data.AppCfg.AutoSongRequestID)
 
 	for irc == nil {
 		time.Sleep(time.Second * time.Duration(connectRetries))
@@ -125,50 +122,10 @@ func processIRC(irc *IRCConn, incoming string, n int) {
 		handleBan(incoming, incomingChannel)
 	case strings.Contains(identity, "custom-reward-id="):
 		handleRewards(identity, incomingChannel, user, actualMessage)
-		// bts blood sweat tears
-	case strings.Contains(identity, "mod=1") && strings.HasPrefix(actualMessage, "!"):
-		handleCommand(incomingChannel, user, actualMessage)
+	case (strings.Contains(identity, "mod=1") && strings.HasPrefix(actualMessage, "!")) || user == ":azurindayo!azurindayo@azurindayo.tmi.twitch.tv":
+		handleModCommand(incomingChannel, user, actualMessage)
 	default:
 		logirc.Println(incoming)
-	}
-}
-
-func IdentityParser(identity string) *map[string]string {
-	r := make(map[string]string)
-	if !strings.Contains(identity, ";") {
-		v := strings.Split(identity, "=")
-		r[v[0]] = v[1]
-		return &r
-	}
-
-	for _, group := range strings.Split(identity, ";") {
-		v := strings.Split(group, "=")
-		r[v[0]] = v[1]
-	}
-	return &r
-}
-
-func handleRewards(identity string, incomingChannel string, user string, actualMesage string) {
-	identityMap := IdentityParser(identity)
-	if (*identityMap)["custom-reward-id"] != (*rewardsMap)[incomingChannel] {
-		return
-	}
-	// Per channel implementation. For now only Erica's
-	if autosr {
-		*msgChan <- chat("!sr "+actualMesage, incomingChannel)
-	}
-}
-
-func handleCommand(incomingChannel string, user string, acutalMessage string) {
-	if incomingChannel == "#ericarei" {
-		if strings.HasPrefix(acutalMessage, "!autosr") || strings.HasPrefix(acutalMessage, "!togglesr") {
-			autosr = !autosr
-			if autosr {
-				*msgChan <- chat("autosr is now on", incomingChannel)
-			} else {
-				*msgChan <- chat("autosr is now off", incomingChannel)
-			}
-		}
 	}
 }
 
