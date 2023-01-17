@@ -9,3 +9,9 @@ func processSongRequestNightBot(msgChan *chan string, channel string, actualMess
 		*msgChan <- chat("!sr "+actualMessage, channel)
 	}
 }
+
+func processSongRequestSpotify(msgChan *chan string, channel string, actualMessage string) {
+	if !autosr[channel] {
+		return
+	}
+}
