@@ -122,7 +122,7 @@ func processIRC(irc *IRCConn, incoming string, n int) {
 		handleBan(incoming, incomingChannel)
 	case strings.Contains(identity, "custom-reward-id="):
 		handleRewards(identity, incomingChannel, user, actualMessage)
-	case (strings.Contains(identity, "mod=1") && strings.HasPrefix(actualMessage, "!")) || user == ":azurindayo!azurindayo@azurindayo.tmi.twitch.tv":
+	case (strings.Contains(identity, "mod=1") && strings.HasPrefix(actualMessage, "!")) || (strings.HasPrefix(actualMessage, "!") && user == ":azurindayo!azurindayo@azurindayo.tmi.twitch.tv"):
 		handleModCommand(incomingChannel, user, actualMessage)
 	default:
 		logirc.Println(incoming)
