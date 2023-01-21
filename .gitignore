@@ -4,3 +4,5 @@ test_outputs
 cmd/tester
 main.exe
 main
+\#*.json
+tokens

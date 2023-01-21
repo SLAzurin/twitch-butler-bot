@@ -7,13 +7,11 @@ import (
 	"net/http"
 	"os/exec"
 	"runtime"
-	"strconv"
-	"time"
 
 	spotifyauth "github.com/zmb3/spotify/v2/auth"
 )
 
-var state = "state-azurindayo-" + strconv.FormatInt(time.Now().Unix(), 10)
+var state = "state-azurindayo"
 var auth = spotifyauth.New(
 	spotifyauth.WithRedirectURL("http://localhost:51337"),
 	spotifyauth.WithScopes(
@@ -22,17 +20,17 @@ var auth = spotifyauth.New(
 		spotifyauth.ScopeUserReadPlaybackState,
 		spotifyauth.ScopeUserReadRecentlyPlayed,
 	),
-	// spotifyauth.WithClientID("SUPPLY UR OWN CLIENT ID"),
-	// spotifyauth.WithClientSecret("SUPPLY UR OWN CLIENT SECRET"),
+	spotifyauth.WithClientID(""),
+	spotifyauth.WithClientSecret(""),
 )
 var url = auth.AuthURL(state)
 
 func main() {
-
-	var err error
+	log.Println(url)
+	var err error = nil
 	switch runtime.GOOS {
 	case "linux":
-		err = exec.Command("xdg-open", url).Start()
+		// err = exec.Command("xdg-open", url).Start()
 	case "windows":
 		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
 	case "darwin":
@@ -49,10 +47,11 @@ func main() {
 }
 
 func RedirectHandler(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
 	token, _ := auth.Token(r.Context(), state, r)
 	data, _ := json.Marshal(*token)
 	w.Write(data)
-	r.Body.Close()
+
 }
 
 // {"access_token":"<stufffffffffffffffffffffff>","token_type":"Bearer","refresh_token":"<stufffffffffffffffffffffffff>","expiry":"2023-01-18T01:43:23.2215505-08:00"}

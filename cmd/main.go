@@ -19,6 +19,9 @@ func main() {
 		}
 	}
 
+	api.StartupSpotify()
+
+
 	var exitCh = make(chan struct{}, 1)
 
 	go api.Run(&exitCh)

@@ -15,4 +15,6 @@ FROM alpine:3.17
 
 COPY --from=builder /src/main /root/
 
+WORKDIR /root/
+
 ENTRYPOINT [ "/root/main" ]
