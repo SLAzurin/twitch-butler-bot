@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"runtime"
 
+	"github.com/slazurin/twitch-butler-bot/pkg/data"
 	spotifyauth "github.com/zmb3/spotify/v2/auth"
 )
 
@@ -20,8 +21,8 @@ var auth = spotifyauth.New(
 		spotifyauth.ScopeUserReadPlaybackState,
 		spotifyauth.ScopeUserReadRecentlyPlayed,
 	),
-	spotifyauth.WithClientID(""),
-	spotifyauth.WithClientSecret(""),
+	spotifyauth.WithClientID(data.AppCfg.SpotifyID),
+	spotifyauth.WithClientSecret(data.AppCfg.SpotifySecret),
 )
 var url = auth.AuthURL(state)
 
@@ -30,7 +31,7 @@ func main() {
 	var err error = nil
 	switch runtime.GOOS {
 	case "linux":
-		// err = exec.Command("xdg-open", url).Start()
+		err = exec.Command("xdg-open", url).Start()
 	case "windows":
 		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
 	case "darwin":
@@ -39,7 +40,7 @@ func main() {
 		err = fmt.Errorf("unsupported platform")
 	}
 	if err != nil {
-		log.Fatal(err)
+		log.Println("Copy and paste the url ^")
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", RedirectHandler)
