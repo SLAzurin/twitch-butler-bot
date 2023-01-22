@@ -30,7 +30,9 @@ var autosr = map[string]bool{
 var spotifyStates = map[string]struct {
 	SpotifyClient *spotify.Client
 }{
-	// "#sangnope":   {},
+	"#sangnope": {
+		SpotifyClient: nil,
+	},
 	"#azurindayo": {
 		SpotifyClient: nil,
 	},
