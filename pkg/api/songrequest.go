@@ -25,7 +25,9 @@ var spotifyStates = map[string]struct {
 	SpotifyClient *spotify.Client
 }{
 	// "#sangnope":   {},d. A successful call returns err == nil,
-	"#azurindayo": {},
+	"#azurindayo": {
+		SpotifyClient: nil,
+	},
 }
 
 func StartupSpotify() {
@@ -106,6 +108,10 @@ func processSongRequestSpotify(msgChan *chan string, channel string, actualMessa
 		SpotifyClient *spotify.Client
 	}
 	if state, ok = spotifyStates[channel]; !ok {
+		return
+	}
+	if state.SpotifyClient == nil {
+		// log.Println("Error: Calling nil state.SpotifyClient fopr channel", channel)
 		return
 	}
 	brokenMsg := strings.Split(actualMessage, " ")
