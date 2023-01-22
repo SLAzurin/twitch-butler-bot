@@ -110,6 +110,10 @@ func processSongRequestSpotify(msgChan *chan string, channel string, actualMessa
 	}
 	brokenMsg := strings.Split(actualMessage, " ")
 	for _, s := range brokenMsg {
+		if strings.Contains(s, "youtube.com") || strings.Contains(s, "youtu.be") {
+			// Ignore youtube song requests
+			return
+		}
 		if strings.HasPrefix(s, "spotify:track:") || strings.HasPrefix(s, "https://open.spotify.com/track/") {
 			TrackID := ""
 			if strings.HasPrefix(s, "https://open.spotify.com/track/") {

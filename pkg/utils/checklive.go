@@ -31,7 +31,6 @@ func ChannelIsLive(channel string) (bool, error) {
 	resp.Body.Close()
 	data := data.ApiStreams{}
 	json.Unmarshal(respBody, &data)
-	log.Println(string(respBody))
 	if len(data.Data) > 0 {
 		return true, nil
 	}
