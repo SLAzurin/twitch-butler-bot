@@ -39,6 +39,19 @@ func handleModCommand(incomingChannel string, user string, acutalMessage string)
 	}
 }
 
+func handleSubCommand(incomingChannel string, user string, acutalMessage string) {
+	cmdLen := strings.Index(acutalMessage, " ")
+	if cmdLen == -1 {
+		cmdLen = len(acutalMessage)
+	}
+	if m, ok := SubsCommands[incomingChannel]; ok {
+		if f, ok := m[acutalMessage[:cmdLen]]; ok {
+			f(incomingChannel, user, acutalMessage)
+			return
+		}
+	}
+}
+
 func toggleAutoSR(incomingChannel, user, acutalMessage string) {
 	autosr[incomingChannel] = !autosr[incomingChannel]
 	if autosr[incomingChannel] {
