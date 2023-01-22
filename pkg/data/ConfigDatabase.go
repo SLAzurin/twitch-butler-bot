@@ -8,7 +8,6 @@ type ConfigDatabase struct {
 	AutoUnbans             string `env:"AUTO_UNBANS"`
 	AutoUnbanChannels      string `env:"AUTO_UNBAN_CHANNELS"`
 	AutoSongRequestChannel string `env:"AUTO_SONG_REQUEST_CHANNEL"`
-	AutoSongRequestID      string `env:"AUTO_SONG_REQUEST_ID"`
 	SpotifyID              string `env:"SPOTIFY_ID"`
 	SpotifySecret          string `env:"SPOTIFY_SECRET"`
 }
