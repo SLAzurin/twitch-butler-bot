@@ -15,6 +15,12 @@ import (
 	"golang.org/x/oauth2"
 )
 
+/*
+Adding channel for autosr:
+1) Add channel name to autosr map
+2) If using spotify, get credentials using cmd/spotifyoauth/main.go, and add channel name spotifyStates
+*/
+
 var autosr = map[string]bool{
 	"#ericarei":   true,
 	"#sangnope":   true,
@@ -24,7 +30,7 @@ var autosr = map[string]bool{
 var spotifyStates = map[string]struct {
 	SpotifyClient *spotify.Client
 }{
-	// "#sangnope":   {},d. A successful call returns err == nil,
+	// "#sangnope":   {},
 	"#azurindayo": {
 		SpotifyClient: nil,
 	},

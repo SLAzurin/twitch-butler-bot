@@ -7,6 +7,10 @@ import (
 	"golang.org/x/net/websocket"
 )
 
+/*
+Main entrypoint
+*/
+
 func Run(exitCh *chan struct{}) {
 	var err error
 

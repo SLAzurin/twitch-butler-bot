@@ -11,6 +11,10 @@ import (
 	"golang.org/x/net/websocket"
 )
 
+/*
+To add a channel, add it to the .env file
+*/
+
 type IRCConn struct {
 	Conn *websocket.Conn
 }

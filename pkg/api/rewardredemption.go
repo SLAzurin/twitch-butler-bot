@@ -6,6 +6,12 @@ import (
 	"os"
 )
 
+/*
+Add reward redemptions:
+1) note down the uuid for the reward id
+2) add it to rewardsMap and add the func to hook on it.
+*/
+
 var logreward = log.New(os.Stdout, "REWARD ", log.Ldate|log.Ltime)
 var rewardsMap = map[string]func(msgChan *chan string, channel string, actualMessage string){
 	"#ericarei=110b2338-fef9-47c1-be96-39363e0b5c87": processSongRequestNightBot,

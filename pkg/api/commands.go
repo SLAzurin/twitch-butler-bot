@@ -4,8 +4,16 @@ import (
 	"strings"
 )
 
+/*
+Add commands under each channel here
+*/
+
 var ModCommands = map[string]map[string]func(incomingChannel string, user string, acutalMessage string){
 	"#ericarei": {
+		"!autosr":   toggleAutoSR,
+		"!togglesr": toggleAutoSR,
+	},
+	"#sangnope": {
 		"!autosr":   toggleAutoSR,
 		"!togglesr": toggleAutoSR,
 	},
