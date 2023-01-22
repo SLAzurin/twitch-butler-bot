@@ -104,6 +104,8 @@ func processIRC(irc *IRCConn, incoming string, n int) {
 	}
 }
 
+var lastBanTime = map[string]time.Time{}
+
 func handleBan(rawmsg string, channel string) {
 	if !strings.Contains(data.AppCfg.AutoUnbanChannels, channel) {
 		return
@@ -119,6 +121,16 @@ func handleBan(rawmsg string, channel string) {
 		} else {
 			*msgChan <- chat("/untimeout "+bannedUser, channel)
 		}
+
+		oldTime := time.Now().Add(-6 * time.Second)
+		if t, ok := lastBanTime[channel]; ok {
+			oldTime = t
+		}
+		lastBanTime[channel] = time.Now()
+		if oldTime.After(time.Now().Add(-5 * time.Second)) {
+			return
+		}
+
 		// fluff here
 		*msgChan <- chat(GetRandomUnbanPhrase(), channel)
 
