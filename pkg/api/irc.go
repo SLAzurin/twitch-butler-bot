@@ -27,6 +27,10 @@ var connectRetries = 0
 var msgChan *chan string
 
 func init() {
+	anyChannelCommands = map[string]func(incomingChannel string, user string, isMod bool, acutalMessage string){
+		"!mr":      commandMapleRanks,
+		"!disable": commandDisable,
+	}
 	var c = make(chan string)
 	msgChan = &c
 	go func() {
@@ -96,9 +100,11 @@ func processIRC(irc *IRCConn, incoming string, n int) {
 	case strings.Contains(identity, "custom-reward-id="):
 		handleRewards(identity, incomingChannel, user, actualMessage)
 	case (strings.Contains(identity, "mod=1") && strings.HasPrefix(actualMessage, "!")) || (user == ":azurindayo!azurindayo@azurindayo.tmi.twitch.tv" && strings.HasPrefix(actualMessage, "!")):
-		handleModCommand(incomingChannel, user, actualMessage)
+		handleModCommand(incomingChannel, user, true, actualMessage)
 	case ((strings.Contains(identity, "founder/") || strings.Contains(identity, "subscriber/")) && strings.HasPrefix(actualMessage, "!")):
-		handleSubCommand(incomingChannel, user, actualMessage)
+		handleSubCommand(incomingChannel, user, strings.Contains(identity, "mod=1"), actualMessage)
+	case strings.HasPrefix(actualMessage, "!"):
+		handleAnyCommand(incomingChannel, user, strings.Contains(identity, "mod=1"), actualMessage)
 	default:
 		logirc.Println(incoming)
 	}
