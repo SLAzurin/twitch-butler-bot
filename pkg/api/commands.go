@@ -24,7 +24,9 @@ var SubsCommands = map[string]map[string]func(incomingChannel string, user strin
 		"!sr": commandProcessSongRequestSpotify,
 	},
 	"#sangnope": {
-		"!sr": commandProcessSongRequestSpotify,
+		"!sr":   commandProcessSongRequestSpotify,
+		"!skip": commandSkipSongSpotify,
+		"!next": commandSkipSongSpotify,
 	},
 }
 

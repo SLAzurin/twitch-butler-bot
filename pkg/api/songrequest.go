@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/slazurin/twitch-butler-bot/pkg/data"
 	"github.com/slazurin/twitch-butler-bot/pkg/utils"
@@ -29,6 +30,7 @@ var autosr = map[string]bool{
 
 var spotifyStates = map[string]struct {
 	SpotifyClient *spotify.Client
+	LastSkip      *time.Time
 }{
 	"#sangnope": {
 		SpotifyClient: nil,
@@ -87,7 +89,13 @@ func StartupSpotify() {
 			spotifyauth.WithClientSecret(data.AppCfg.SpotifySecret),
 		).Client(context.Background(), &auth))
 
-		spotifyStates[c] = struct{ SpotifyClient *spotify.Client }{SpotifyClient: userClient}
+		spotifyStates[c] = struct {
+			SpotifyClient *spotify.Client
+			LastSkip      *time.Time
+		}{
+			SpotifyClient: userClient,
+			LastSkip:      nil,
+		}
 		log.Println("Spotify client set for " + c)
 	}
 }
@@ -96,6 +104,44 @@ func processSongRequestNightBot(msgChan *chan string, channel string, actualMess
 	if autosr[channel] {
 		*msgChan <- chat("!sr "+actualMessage, channel)
 	}
+}
+
+func commandSkipSongSpotify(channel string, user string, acutalMessage string) {
+	if !autosr[channel] {
+		return
+	}
+	live, err := utils.ChannelIsLive(strings.Trim(channel, "#"))
+	if err != nil {
+		*msgChan <- chat("I couldn't check if the broadcaster is live ericareiCry", channel)
+		return
+	}
+	if !live {
+		*msgChan <- chat("Broadcaster is not live you silly ericareiGiggle", channel)
+		return
+	}
+	var ok bool
+	var state struct {
+		SpotifyClient *spotify.Client
+		LastSkip      *time.Time
+	}
+	if state, ok = spotifyStates[channel]; !ok {
+		return
+	}
+	if state.SpotifyClient == nil {
+		// log.Println("Error: Calling nil state.SpotifyClient fopr channel", channel)
+		return
+	}
+	now := time.Now()
+	if state.LastSkip == nil {
+		*spotifyStates[channel].LastSkip = now
+	} else {
+		if spotifyStates[channel].LastSkip.Add(time.Second * 3).After(now) {
+			return
+		}
+	}
+	ctx := context.Background()
+	state.SpotifyClient.Next(ctx)
+
 }
 
 func processSongRequestSpotify(msgChan *chan string, channel string, actualMessage string) {
@@ -114,6 +160,7 @@ func processSongRequestSpotify(msgChan *chan string, channel string, actualMessa
 	var ok bool
 	var state struct {
 		SpotifyClient *spotify.Client
+		LastSkip      *time.Time
 	}
 	if state, ok = spotifyStates[channel]; !ok {
 		return
