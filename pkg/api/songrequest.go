@@ -30,13 +30,15 @@ var autosr = map[string]bool{
 
 var spotifyStates = map[string]struct {
 	SpotifyClient *spotify.Client
-	LastSkip      *time.Time
+	LastSkip      time.Time
 }{
 	"#sangnope": {
 		SpotifyClient: nil,
+		LastSkip:      time.Now(),
 	},
 	"#azurindayo": {
 		SpotifyClient: nil,
+		LastSkip:      time.Now(),
 	},
 }
 
@@ -91,10 +93,10 @@ func StartupSpotify() {
 
 		spotifyStates[c] = struct {
 			SpotifyClient *spotify.Client
-			LastSkip      *time.Time
+			LastSkip      time.Time
 		}{
 			SpotifyClient: userClient,
-			LastSkip:      nil,
+			LastSkip:      time.Now(),
 		}
 		log.Println("Spotify client set for " + c)
 	}
@@ -120,29 +122,27 @@ func commandSkipSongSpotify(channel string, user string, acutalMessage string) {
 		return
 	}
 	var ok bool
-	var state struct {
-		SpotifyClient *spotify.Client
-		LastSkip      *time.Time
-	}
-	if state, ok = spotifyStates[channel]; !ok {
+	if _, ok = spotifyStates[channel]; !ok {
+		log.Println("Error: spotify state dne", channel)
 		return
 	}
-	if state.SpotifyClient == nil {
-		// log.Println("Error: Calling nil state.SpotifyClient fopr channel", channel)
+	if spotifyStates[channel].SpotifyClient == nil {
+		log.Println("Error: Calling nil state.SpotifyClient fopr channel", channel)
 		return
 	}
 	now := time.Now()
-	if state.LastSkip == nil {
-		*spotifyStates[channel].LastSkip = now
-	} else {
-		if spotifyStates[channel].LastSkip.Add(time.Second * 3).After(now) {
-			return
-		}
-		*spotifyStates[channel].LastSkip = now
+	if spotifyStates[channel].LastSkip.Add(time.Second * 3).After(now) {
+		return
 	}
-	ctx := context.Background()
-	state.SpotifyClient.Next(ctx)
+	newState := spotifyStates[channel]
+	newState.LastSkip = now
+	spotifyStates[channel] = newState
 
+	ctx := context.Background()
+	err = spotifyStates[channel].SpotifyClient.Next(ctx)
+	if err != nil {
+		*msgChan <- chat("Failed to add song sangnoSad "+err.Error(), channel)
+	}
 }
 
 func processSongRequestSpotify(msgChan *chan string, channel string, actualMessage string) {
@@ -161,7 +161,7 @@ func processSongRequestSpotify(msgChan *chan string, channel string, actualMessa
 	var ok bool
 	var state struct {
 		SpotifyClient *spotify.Client
-		LastSkip      *time.Time
+		LastSkip      time.Time
 	}
 	if state, ok = spotifyStates[channel]; !ok {
 		return
