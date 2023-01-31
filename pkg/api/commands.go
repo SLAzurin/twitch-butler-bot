@@ -2,6 +2,7 @@ package api
 
 import (
 	"strings"
+	"time"
 )
 
 /*
@@ -130,4 +131,16 @@ func commandMapleRanks(incomingChannel string, user string, isMod bool, acutalMe
 		*msgChan <- chat("https://mapleranks.com/u/"+argv[1], incomingChannel)
 	}
 
+}
+
+var commandCoolDowns = map[string]time.Time{
+	"!help": time.Now().Add(-10 * time.Second),
+}
+
+func commandHelp(channel string, user string, isMod bool, actualMessage string) {
+	if commandCoolDowns["!help"].Add(10 * time.Second).After(time.Now()) {
+		return
+	}
+	commandCoolDowns["!help"] = time.Now()
+	*msgChan <- chat("https://gist.github.com/SLAzurin/f77a54a22bdd0a70ec2d81938d432944", channel)
 }

@@ -30,6 +30,7 @@ func init() {
 	anyChannelCommands = map[string]func(incomingChannel string, user string, isMod bool, acutalMessage string){
 		"!mr":      commandMapleRanks,
 		"!disable": commandDisable,
+		"!help":    commandHelp,
 	}
 	var c = make(chan string)
 	msgChan = &c
