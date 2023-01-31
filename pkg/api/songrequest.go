@@ -138,6 +138,7 @@ func commandSkipSongSpotify(channel string, user string, acutalMessage string) {
 		if spotifyStates[channel].LastSkip.Add(time.Second * 3).After(now) {
 			return
 		}
+		*spotifyStates[channel].LastSkip = now
 	}
 	ctx := context.Background()
 	state.SpotifyClient.Next(ctx)
