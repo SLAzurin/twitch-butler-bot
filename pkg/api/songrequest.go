@@ -123,15 +123,18 @@ func commandSkipSongSpotify(channel string, user string, acutalMessage string) {
 	}
 	var ok bool
 	if _, ok = spotifyStates[channel]; !ok {
+		*msgChan <- chat("Uh... AzuriBot broken sangnoDead ...", channel)
 		log.Println("Error: spotify state dne", channel)
 		return
 	}
 	if spotifyStates[channel].SpotifyClient == nil {
+		*msgChan <- chat("Uh... AzuriBot broken sangnoDead ...", channel)
 		log.Println("Error: Calling nil state.SpotifyClient fopr channel", channel)
 		return
 	}
 	now := time.Now()
-	if spotifyStates[channel].LastSkip.Add(time.Second * 3).After(now) {
+	if spotifyStates[channel].LastSkip.Add(time.Second * 10).After(now) {
+		*msgChan <- chat("Don't skip song too quickly! ericareiPout", channel)
 		return
 	}
 	newState := spotifyStates[channel]
@@ -142,7 +145,9 @@ func commandSkipSongSpotify(channel string, user string, acutalMessage string) {
 	err = spotifyStates[channel].SpotifyClient.Next(ctx)
 	if err != nil {
 		*msgChan <- chat("Failed to add song sangnoSad "+err.Error(), channel)
+		return
 	}
+	*msgChan <- chat("Skipped song sangnoWave", channel)
 }
 
 func processSongRequestSpotify(msgChan *chan string, channel string, actualMessage string) {
