@@ -31,6 +31,15 @@ var SubsCommands = map[string]map[string]func(incomingChannel string, user strin
 	},
 }
 
+func setAnyChannelCommands() {
+	anyChannelCommands = map[string]func(incomingChannel string, user string, isMod bool, acutalMessage string){
+		"!mr":       commandMapleRanks,
+		"!disable":  commandDisable,
+		"!help":     commandHelp,
+		"!commands": commandHelp,
+	}
+}
+
 var disabledAnyCommands = map[string]map[string]struct{}{}
 
 var anyChannelCommands map[string]func(incomingChannel string, user string, isMod bool, acutalMessage string)
