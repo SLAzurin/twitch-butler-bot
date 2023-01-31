@@ -16,6 +16,8 @@ var ModCommands = map[string]map[string]func(incomingChannel string, user string
 	"#sangnope": {
 		"!autosr":   toggleAutoSR,
 		"!togglesr": toggleAutoSR,
+		"!skip":     commandSkipSongSpotify,
+		"!next":     commandSkipSongSpotify,
 	},
 }
 
@@ -24,9 +26,7 @@ var SubsCommands = map[string]map[string]func(incomingChannel string, user strin
 		"!sr": commandProcessSongRequestSpotify,
 	},
 	"#sangnope": {
-		"!sr":   commandProcessSongRequestSpotify,
-		"!skip": commandSkipSongSpotify,
-		"!next": commandSkipSongSpotify,
+		"!sr": commandProcessSongRequestSpotify,
 	},
 }
 
