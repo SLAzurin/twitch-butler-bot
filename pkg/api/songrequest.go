@@ -215,6 +215,23 @@ func processSongRequestSpotify(msgChan *chan string, channel string, actualMessa
 	}
 	if len(result.Tracks.Tracks) > 0 {
 		t := result.Tracks.Tracks[0].ID
+
+		queue, err := state.SpotifyClient.GetQueue(context.Background())
+		if err != nil {
+			*msgChan <- chat("Error Couldn't check if your song was already queued "+err.Error()+" sangnoSad", channel)
+			return
+		}
+		if queue.CurrentlyPlaying.ID == t {
+			*msgChan <- chat("It's the currently playing song you silly ericareiGiggle", channel)
+			return
+		}
+		for _, v := range queue.Items {
+			if v.ID == t {
+				*msgChan <- chat("That song is already queued you silly ericareiGiggle", channel)
+				return
+			}
+		}
+
 		err = state.SpotifyClient.QueueSong(ctx, spotify.ID(t))
 		if err != nil {
 			*msgChan <- chat("Error adding track to queue "+err.Error()+" sangnoSad", channel)
