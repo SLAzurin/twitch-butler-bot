@@ -197,7 +197,7 @@ func processSongRequestSpotify(msgChan *chan string, channel string, actualMessa
 	// text search
 	if TrackID == "" {
 		ctx := context.Background()
-		result, err := state.SpotifyClient.Search(ctx, actualMessage, spotify.SearchTypeTrack, spotify.Market("US"))
+		result, err := state.SpotifyClient.Search(ctx, strings.Trim(actualMessage, "!sr "), spotify.SearchTypeTrack, spotify.Market("US"))
 		if err != nil {
 			*msgChan <- chat("Error when searching track "+err.Error()+" sangnoSad", channel)
 			return
