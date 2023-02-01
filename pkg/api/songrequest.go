@@ -176,13 +176,13 @@ func processSongRequestSpotify(msgChan *chan string, channel string, actualMessa
 		return
 	}
 	brokenMsg := strings.Split(actualMessage, " ")
+	TrackID := ""
 	for _, s := range brokenMsg {
 		if strings.Contains(s, "youtube.com") || strings.Contains(s, "youtu.be") {
 			// Ignore youtube song requests
 			return
 		}
 		if strings.HasPrefix(s, "spotify:track:") || strings.HasPrefix(s, "https://open.spotify.com/track/") {
-			TrackID := ""
 			if strings.HasPrefix(s, "https://open.spotify.com/track/") {
 				TrackID = strings.TrimPrefix(s, "https://open.spotify.com/track/")
 				if strings.Contains(TrackID, "?") {
@@ -191,54 +191,50 @@ func processSongRequestSpotify(msgChan *chan string, channel string, actualMessa
 			} else {
 				TrackID = strings.TrimPrefix(s, "spotify:track:")
 			}
-			ctx := context.Background()
-			result, err := state.SpotifyClient.GetTrack(ctx, spotify.ID(TrackID))
-			if err != nil {
-				*msgChan <- chat("Error when searching track "+err.Error(), channel)
-				return
-			}
-			err = state.SpotifyClient.QueueSong(ctx, spotify.ID(TrackID))
-			if err != nil {
-				*msgChan <- chat("Error adding track to queue "+err.Error()+" sangnoSad", channel)
-				return
-			}
-			*msgChan <- chat("Added "+result.Name+" by "+result.Artists[0].Name+" to queue", channel)
-			return
+			break
 		}
 	}
 	// text search
-	ctx := context.Background()
-	result, err := state.SpotifyClient.Search(ctx, actualMessage, spotify.SearchTypeTrack, spotify.Market("US"))
+	if TrackID == "" {
+		ctx := context.Background()
+		result, err := state.SpotifyClient.Search(ctx, actualMessage, spotify.SearchTypeTrack, spotify.Market("US"))
+		if err != nil {
+			*msgChan <- chat("Error when searching track "+err.Error()+" sangnoSad", channel)
+			return
+		}
+		if len(result.Tracks.Tracks) > 0 {
+			TrackID = result.Tracks.Tracks[0].ID.String()
+		} else {
+			*msgChan <- chat("No results found on Spotify sangnoSad", channel)
+			return
+		}
+	}
+	result, err := state.SpotifyClient.GetTrack(context.Background(), spotify.ID(TrackID))
 	if err != nil {
-		*msgChan <- chat("Error when searching track"+err.Error(), channel)
+		*msgChan <- chat("No results found on Spotify sangnoSad", channel)
 		return
 	}
-	if len(result.Tracks.Tracks) > 0 {
-		t := result.Tracks.Tracks[0].ID
-
-		queue, err := state.SpotifyClient.GetQueue(context.Background())
-		if err != nil {
-			*msgChan <- chat("Error Couldn't check if your song was already queued "+err.Error()+" sangnoSad", channel)
-			return
-		}
-		if queue.CurrentlyPlaying.ID == t {
-			*msgChan <- chat("It's the currently playing song you silly ericareiGiggle", channel)
-			return
-		}
-		for _, v := range queue.Items {
-			if v.ID == t {
-				*msgChan <- chat("That song is already queued you silly ericareiGiggle", channel)
-				return
-			}
-		}
-
-		err = state.SpotifyClient.QueueSong(ctx, spotify.ID(t))
-		if err != nil {
-			*msgChan <- chat("Error adding track to queue "+err.Error()+" sangnoSad", channel)
-			return
-		}
-		*msgChan <- chat("Added "+result.Tracks.Tracks[0].Name+" by "+result.Tracks.Tracks[0].Artists[0].Name+" to queue", channel)
-	} else {
-		*msgChan <- chat("No results found on Spotify sangnoSad", channel)
+	// Check if song is in queue already
+	queue, err := state.SpotifyClient.GetQueue(context.Background())
+	if err != nil {
+		*msgChan <- chat("Error: Couldn't check if your song was already queued "+err.Error()+" sangnoSad", channel)
+		return
 	}
+	if queue.CurrentlyPlaying.ID.String() == TrackID {
+		*msgChan <- chat("It's the currently playing song you silly ericareiGiggle", channel)
+		return
+	}
+	for _, v := range queue.Items {
+		if v.ID.String() == TrackID {
+			*msgChan <- chat("That song is already queued you silly ericareiGiggle", channel)
+			return
+		}
+	}
+
+	err = state.SpotifyClient.QueueSong(context.Background(), spotify.ID(TrackID))
+	if err != nil {
+		*msgChan <- chat("Error adding track to queue "+err.Error()+" sangnoSad", channel)
+		return
+	}
+	*msgChan <- chat("Added "+result.Name+" by "+result.Artists[0].Name+" to queue", channel)
 }
