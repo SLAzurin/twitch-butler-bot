@@ -88,6 +88,9 @@ func processIRC(irc *IRCConn, incoming string, n int) {
 	}
 
 	switch {
+	case incoming == ":tmi.twitch.tv RECONNECT":
+		*exitCh <- struct{}{}
+		return
 	case strings.HasPrefix(incoming, "PING"):
 		*msgChan <- strings.Replace(incoming, "PING", "PONG", 1)
 		logirc.Println(strings.Replace(incoming, "PING", "PONG", 1))

@@ -10,8 +10,10 @@ import (
 /*
 Main entrypoint
 */
+var exitCh *chan struct{}
 
-func Run(exitCh *chan struct{}) {
+func Run(_exitCh *chan struct{}) {
+	exitCh = _exitCh
 	var err error
 
 	// IRC
