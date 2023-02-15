@@ -17,8 +17,11 @@ services:
     # ports:
     #   - 5432:5432
     volumes:
-      - ./pg_data:/var/lib/postgresql/data
+      - twitchbutlerbot_pg_data:/var/lib/postgresql/data
       - ./sqlfiles:/root/sqlfiles
     restart: unless-stopped
     env_file:
       - .env
+
+volumes:
+  twitchbutlerbot_pg_data:
