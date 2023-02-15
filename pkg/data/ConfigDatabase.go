@@ -10,6 +10,11 @@ type ConfigDatabase struct {
 	AutoSongRequestChannel string `env:"AUTO_SONG_REQUEST_CHANNEL"`
 	SpotifyID              string `env:"SPOTIFY_ID"`
 	SpotifySecret          string `env:"SPOTIFY_SECRET"`
+	PostgresUser           string `env:"POSTGRES_USER"`
+	PostgresPassword       string `env:"POSTGRES_PASSWORD"`
+	PostgresDB             string `env:"POSTGRES_DB"`
+	PostgresPort           string `env:"CLIENT_POSTGRES_PORT"`
+	PostgresHost           string `env:"CLIENT_POSTGRES_HOST"`
 }
 
 var AppCfg ConfigDatabase

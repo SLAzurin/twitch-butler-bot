@@ -1,8 +1,11 @@
 package api
 
 import (
+	"strconv"
 	"strings"
 	"time"
+
+	"github.com/slazurin/twitch-butler-bot/pkg/apidb"
 )
 
 /*
@@ -27,7 +30,8 @@ var SubsCommands = map[string]map[string]func(incomingChannel string, user strin
 		"!sr": commandProcessSongRequestSpotify,
 	},
 	"#sangnope": {
-		"!sr": commandProcessSongRequestSpotify,
+		"!sr":    commandProcessSongRequestSpotify,
+		"!dumpy": commandDumpy,
 	},
 }
 
@@ -99,6 +103,20 @@ func commandProcessSongRequestSpotify(incomingChannel, user, acutalMessage strin
 	processSongRequestSpotify(msgChan, incomingChannel, acutalMessage)
 }
 
+func commandDumpy(incomingChannel string, user string, acutalMessage string) {
+	if commandCoolDowns["!dumpy"].Add(10 * time.Second).After(time.Now()) {
+		return
+	}
+	commandCoolDowns["!dumpy"] = time.Now()
+	var dumpyCount int64 = 0
+	err := apidb.DB.QueryRow(`SELECT num FROM sangnope WHERE id = 1`).Scan(&dumpyCount)
+	if err != nil {
+		*msgChan <- chat("NO DUMPY!?!?!?! ericareiShock2", incomingChannel)
+		return
+	}
+	*msgChan <- chat(strconv.FormatInt(dumpyCount, 10)+" dumpies ericareiGiggle", incomingChannel)
+}
+
 // Disable will disable a command from `anyChannelCommands`
 func commandDisable(incomingChannel string, user string, isMod bool, acutalMessage string) {
 	if !isMod {
@@ -142,8 +160,10 @@ func commandMapleRanks(incomingChannel string, user string, isMod bool, acutalMe
 
 }
 
+// TODO: commandCooldowns isnt channel restricted, it is global. it can work in both Sang's and Erica's ch...
 var commandCoolDowns = map[string]time.Time{
 	"!help": time.Now().Add(-10 * time.Second),
+	"!dumpy": time.Now().Add(-10 * time.Second),
 }
 
 func commandHelp(channel string, user string, isMod bool, actualMessage string) {

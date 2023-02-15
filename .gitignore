@@ -6,3 +6,4 @@ cmd/tester
 main
 \#*.json
 tokens
+pg_data

@@ -10,3 +10,15 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    depends_on:
+      - db
+  db:
+    image: postgres:15-alpine
+    ports:
+      - 5432:5432
+    volumes:
+      - ./pg_data:/var/lib/postgresql/data
+      - ./sqlfiles:/root/sqlfiles
+    restart: unless-stopped
+    env_file:
+      - .env

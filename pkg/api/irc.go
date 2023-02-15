@@ -105,6 +105,9 @@ func processIRC(irc *IRCConn, incoming string, n int) {
 		handleSubCommand(incomingChannel, user, strings.Contains(identity, "mod=1"), actualMessage)
 	case strings.HasPrefix(actualMessage, "!"):
 		handleAnyCommand(incomingChannel, user, strings.Contains(identity, "mod=1"), actualMessage)
+	case strings.Contains(incoming, "PRIVMSG"):
+		handleMessageScan(incomingChannel, user, actualMessage)
+		fallthrough // PRIVMSG Must always be last
 	default:
 		logirc.Println(incoming)
 	}
