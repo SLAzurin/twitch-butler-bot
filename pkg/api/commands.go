@@ -1,6 +1,7 @@
 package api
 
 import (
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -112,6 +113,7 @@ func commandDumpy(incomingChannel string, user string, acutalMessage string) {
 	err := apidb.DB.QueryRow(`SELECT num FROM sangnope WHERE id = 1`).Scan(&dumpyCount)
 	if err != nil {
 		*msgChan <- chat("NO DUMPY!?!?!?! ericareiShock2", incomingChannel)
+		log.Println(err)
 		return
 	}
 	*msgChan <- chat(strconv.FormatInt(dumpyCount, 10)+" dumpies ericareiGiggle", incomingChannel)
