@@ -4,10 +4,12 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"runtime/debug"
 	"strings"
 	"time"
 
 	"github.com/slazurin/twitch-butler-bot/pkg/data"
+	"github.com/slazurin/twitch-butler-bot/pkg/utils"
 	"golang.org/x/net/websocket"
 )
 
@@ -48,6 +50,13 @@ func ircMain() {
 		var msg = make([]byte, 1024)
 		var n int
 		if n, err = irc.Conn.Read(msg); err != nil {
+			log.Println("error when reading websocket msg", err)
+			utils.LogToFile("error when reading websocket msg", err, string(debug.Stack()))
+			if irc != nil {
+				irc.Conn.Close()
+				time.Sleep(2 * time.Second)
+			}
+			*exitCh <- struct{}{}
 			break
 		}
 		stringmsg := string(msg[:n])

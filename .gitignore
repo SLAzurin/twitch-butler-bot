@@ -7,3 +7,4 @@ main
 \#*.json
 tokens
 pg_data
+errorlogs
