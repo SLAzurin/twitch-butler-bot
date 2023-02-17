@@ -42,6 +42,7 @@ func setAnyChannelCommands() {
 		"!disable":  commandDisable,
 		"!help":     commandHelp,
 		"!commands": commandHelp,
+		"!azuribot": commandAzuribot,
 	}
 }
 
@@ -104,6 +105,12 @@ func commandProcessSongRequestSpotify(incomingChannel, user, acutalMessage strin
 	processSongRequestSpotify(msgChan, incomingChannel, acutalMessage)
 }
 
+func commandAzuribot(incomingChannel string, user string, isMod bool, acutalMessage string) {
+	if isMod {
+		*msgChan <- chat("desuwa ericareiLurk", incomingChannel)
+	}
+}
+
 func commandDumpy(incomingChannel string, user string, acutalMessage string) {
 	if commandCoolDowns["!dumpy"].Add(10 * time.Second).After(time.Now()) {
 		return
@@ -164,7 +171,7 @@ func commandMapleRanks(incomingChannel string, user string, isMod bool, acutalMe
 
 // TODO: commandCooldowns isnt channel restricted, it is global. it can work in both Sang's and Erica's ch...
 var commandCoolDowns = map[string]time.Time{
-	"!help": time.Now().Add(-10 * time.Second),
+	"!help":  time.Now().Add(-10 * time.Second),
 	"!dumpy": time.Now().Add(-10 * time.Second),
 }
 
