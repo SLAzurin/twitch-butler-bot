@@ -9,7 +9,7 @@ const driver = new Builder()
   .setFirefoxOptions(options)
   .build();
 
-driver.get("https://chat.openai.com/chat/38faa86a-7245-4a1a-ab30-c7e9bb3e0529");
+driver.get("https://chat.openai.com/chat/c5a5bee5-820f-4a54-888c-47bd8765e968");
 
 const hostname = "127.0.0.1";
 const port = 3000;
@@ -35,6 +35,7 @@ const server = http.createServer(async (req, res) => {
       req.on("end", async () => {
         try {
           const data = JSON.parse(body);
+          console.log("got body for azuriai", data);
           if (!data || !data.content) {
             res.statusCode = 400;
             res.setHeader("Content-Type", "text/plain");
@@ -88,7 +89,7 @@ async function processAzuriAI(input: string): Promise<string> {
     until.elementLocated(
       By.xpath("//*[contains(text(), 'Regenerate response')]")
     ),
-    15000
+    25000
   );
   const lastPTag: WebElement = await driver.executeScript(`
     const pTags = document.getElementsByTagName('p');

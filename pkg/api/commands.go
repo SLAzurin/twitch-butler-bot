@@ -1,7 +1,11 @@
 package api
 
 import (
+	"bytes"
+	"encoding/json"
+	"io"
 	"log"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -43,6 +47,7 @@ func setAnyChannelCommands() {
 		"!help":     commandHelp,
 		"!commands": commandHelp,
 		"!azuribot": commandAzuribot,
+		"!azuriai":  commandAzuriAI,
 	}
 }
 
@@ -109,6 +114,48 @@ func commandAzuribot(incomingChannel string, user string, isMod bool, acutalMess
 	if isMod {
 		*msgChan <- chat("desuwa ericareiLurk", incomingChannel)
 	}
+}
+
+func commandAzuriAI(incomingChannel string, user string, isMod bool, acutalMessage string) {
+	query := acutalMessage[9:]
+	payload := struct {
+		Content string `json:"content"`
+	}{
+		Content: query,
+	}
+	jsonPayload, _ := json.Marshal(payload)
+	log.Println("Sending", string(jsonPayload))
+	req, err := http.NewRequest("POST", "http://localhost:3000/azuriai", bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	var response struct {
+		Result string `json:"result"`
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode != 200 {
+		log.Println(string(body))
+		*msgChan <- chat("I-I don't know what you're talking about! ericareiPout", incomingChannel)
+		return
+	}
+
+	json.Unmarshal(body, &response)
+
+	*msgChan <- chat(response.Result, incomingChannel)
+
+	resp.Body.Close()
 }
 
 func commandDumpy(incomingChannel string, user string, acutalMessage string) {
