@@ -180,6 +180,7 @@ func processSongRequestSpotify(msgChan *chan string, channel string, actualMessa
 	for _, s := range brokenMsg {
 		if strings.Contains(s, "youtube.com") || strings.Contains(s, "youtu.be") {
 			// Ignore youtube song requests
+			*msgChan <- chat("!spotify", channel)
 			return
 		}
 		if strings.HasPrefix(s, "spotify:track:") || strings.HasPrefix(s, "https://open.spotify.com/track/") {
