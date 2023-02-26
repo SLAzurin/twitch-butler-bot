@@ -64,6 +64,10 @@ func handleAnyCommand(incomingChannel string, user string, isMod bool, acutalMes
 		return
 	}
 	if f, ok := anyChannelCommands[acutalMessage[:cmdLen]]; ok {
+		if !strings.HasPrefix(acutalMessage, "!azuriai ") {
+			return
+		}
+		log.Println(acutalMessage[:cmdLen])
 		f(incomingChannel, user, isMod, acutalMessage)
 		return
 	}
