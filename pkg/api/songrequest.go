@@ -180,6 +180,7 @@ func processSongRequestSpotify(msgChan *chan string, channel string, actualMessa
 	for _, s := range brokenMsg {
 		if strings.Contains(s, "youtube.com") || strings.Contains(s, "youtu.be") {
 			// Ignore youtube song requests
+			*msgChan <- chat("!spotify", channel)
 			return
 		}
 		if strings.HasPrefix(s, "spotify:track:") || strings.HasPrefix(s, "https://open.spotify.com/track/") {
@@ -237,4 +238,17 @@ func processSongRequestSpotify(msgChan *chan string, channel string, actualMessa
 		return
 	}
 	*msgChan <- chat("Added "+result.Name+" by "+result.Artists[0].Name+" to queue", channel)
+}
+
+func GetSpotifyState(channel string) struct {
+	SpotifyClient *spotify.Client
+	LastSkip      time.Time
+} {
+	if v, ok := spotifyStates[channel]; ok {
+		return v
+	}
+	return struct {
+		SpotifyClient *spotify.Client
+		LastSkip      time.Time
+	}{}
 }
