@@ -239,3 +239,16 @@ func processSongRequestSpotify(msgChan *chan string, channel string, actualMessa
 	}
 	*msgChan <- chat("Added "+result.Name+" by "+result.Artists[0].Name+" to queue", channel)
 }
+
+func GetSpotifyState(channel string) struct {
+	SpotifyClient *spotify.Client
+	LastSkip      time.Time
+} {
+	if v, ok := spotifyStates[channel]; ok {
+		return v
+	}
+	return struct {
+		SpotifyClient *spotify.Client
+		LastSkip      time.Time
+	}{}
+}
