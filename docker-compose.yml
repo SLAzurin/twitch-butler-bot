@@ -1,7 +1,7 @@
 version: "2.4"
 
 services:
-  twitch-butler-bot:
+  app:
     build:
       context: .
       dockerfile: Dockerfile
@@ -13,6 +13,7 @@ services:
       - .env
     depends_on:
       - db
+      - redis
   db:
     image: postgres:15-alpine
     # ports:
@@ -23,6 +24,13 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - twitchbutlerbot_redis_data:/data
+    restart: unless-stopped
+
 
 volumes:
   twitchbutlerbot_pg_data:
+  twitchbutlerbot_redis_data:
