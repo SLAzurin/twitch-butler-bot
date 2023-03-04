@@ -41,42 +41,13 @@ CREATE TABLE IF NOT EXISTS channel_data (
   data bytea not null,
   channel_id int not null references channels(id)
 );
+CREATE TABLE IF NOT EXISTS channel_rewards (
+  id serial PRIMARY KEY,
+  reward_id uuid not null,
+  channel_id int not null references channels(id)
+);
 /*
- 
- All states:
- disabled commands
- autosr
- rewardsMap
- 
- cache in ram, dont store in db:
- lastBanTime
- command cooldowns
- 
- 
- db structure
- 
- channels
- id
- channel
- 
- channel_commands
- channel_command_id
- channel_id nullable
- command
- special T/F
- basic_output nullable
- permission_level (0=any, 1=sub, 2=founder, 3=vip, 4=mod, 5=broadcaster 6=actualgod)
- cooldown (in seconds)
- 
- 
- channel_command_perm_overrides
- channel_command_id
- user
- allowed (F for deny)
- 
  redis cache structure
- 
- #channel_state
  autosr
  disabled commands
  autounban users
@@ -85,24 +56,6 @@ CREATE TABLE IF NOT EXISTS channel_data (
  Init db connection
  query db for all channels
  fetch channel state from redis, and set those, update those as the app is executed
- 
- when command happens it pings db every single time? (yea its fine considering it was that way at LF)
- command timeouts should be kept in ram, not cached, not db.
- permissions should be fetched at the same time with a left join
- 
- Thats it
- 
- 
- 1 issue to solve
+
  misc data -> this works: UPDATE randomtable SET value = (value::bigint + 1)::bytea WHERE id = 1 RETURNING value::bigint;
- 
- 
- Like this:
- CREATE TABLE channel_data (
- id varchar(30) PRIMARY KEY,
- unstructured_data bytea not null,
- channel_id bigint
- );
- 
- 
  */
