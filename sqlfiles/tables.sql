@@ -28,13 +28,12 @@ channels
 
 channel_commands
   channel_command_id
-  channel_id
+  channel_id nullable
   command
   special T/F
-  all
-  subs
-  mods
-  super
+  basic_output nullable
+  permission_level (0=any, 1=sub, 2=founder, 3=vip, 4=mod, 5=broadcaster 6=actualgod)
+  cooldown (in seconds)
   
 
 channel_command_perm_overrides
@@ -47,6 +46,7 @@ redis cache structure
 #channel_state
   autosr
   disabled commands
+  autounban users
 
 data loading flow
   Init db connection
@@ -58,5 +58,18 @@ data loading flow
     permissions should be fetched at the same time with a left join
   
   Thats it
+
+
+1 issue to solve
+  misc data -> this works: UPDATE randomtable SET value = (value::bigint + 1)::bytea WHERE id = 1 RETURNING value::bigint;
+
+
+Like this:
+CREATE TABLE channel_data (
+  id varchar(30) PRIMARY KEY,
+  unstructured_data bytea not null,
+  channel_id bigint
+);
+
 
 */
