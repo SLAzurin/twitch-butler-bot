@@ -36,6 +36,11 @@ CREATE TABLE IF NOT EXISTS channel_command_perm_overrides (
   allowed boolean not null,
   channel_name varchar(255) not null
 );
+CREATE TABLE IF NOT EXISTS channel_data (
+  id varchar(30) PRIMARY KEY,
+  data bytea not null,
+  channel_id int not null references channels(id)
+);
 /*
  
  All states:
