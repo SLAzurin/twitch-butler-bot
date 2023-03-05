@@ -38,13 +38,19 @@ CREATE TABLE IF NOT EXISTS channel_command_perm_overrides (
 );
 CREATE TABLE IF NOT EXISTS channel_data (
   id varchar(30) PRIMARY KEY,
-  data bytea not null,
+  data json not null,
   channel_id int not null references channels(id)
 );
 CREATE TABLE IF NOT EXISTS channel_rewards (
   id serial PRIMARY KEY,
   reward_id uuid not null,
-  channel_id int not null references channels(id)
+  channel_id int not null references channels(id),
+  reward_name varchar(255) not null
+);
+CREATE TABLE IF NOT EXISTS channel_command_aliases (
+  id serial PRIMARY KEY,
+  alias text not null,
+  command_id int not null references channel_commands(id)
 );
 /*
  redis cache structure
@@ -56,6 +62,67 @@ CREATE TABLE IF NOT EXISTS channel_rewards (
  Init db connection
  query db for all channels
  fetch channel state from redis, and set those, update those as the app is executed
-
- misc data -> this works: UPDATE randomtable SET value = (value::bigint + 1)::bytea WHERE id = 1 RETURNING value::bigint;
+ 
+ misc data -> this works: UPDATE channel_data SET data = (data::text::integer + 1)::text::json WHERE channel_id = 2 and id = '!dumpy' RETURNING data;
  */
+-- Data to add
+INSERT INTO channels
+VALUES (1, '#ericarei'),
+  (2, '#sangnope');
+INSERT INTO channel_commands
+VALUES (1, null, '!autosr', true, null, 4, 0),
+  (2, null, '!skip', true, null, 4, 10),
+  (3, 2, '!dumpy', true, null, 0, 10),
+  (
+    4,
+    null,
+    '!commands',
+    false,
+    'https://gist.github.com/SLAzurin/f77a54a22bdd0a70ec2d81938d432944',
+    0,
+    10
+  ),
+  (
+    5,
+    null,
+    '!azuribot',
+    false,
+    'desuwa ericareiLurk',
+    4,
+    10
+  ),
+  (6, 2, '!sr', true, null, 0, 2);
+/* (
+ 0 = any,
+ 1 = sub,
+ 2 = founder,
+ 3 = vip,
+ 4 = mod,
+ 5 = broadcaster
+ 6 = actualgod
+ ) */
+INSERT INTO channel_command_aliases (alias, command_id)
+VALUES ('!togglesr', 1),
+  ('!next', 2),
+  ('!help', 4);
+INSERT INTO channel_command_perm_overrides
+VALUES (
+    1,
+    6,
+    ':stummy!stummy@stummy.tmi.twitch.tv',
+    true,
+    '#sangnope'
+  );
+INSERT INTO channel_data
+VALUES ('!dumpy', '72', 2);
+INSERT INTO channel_rewards (reward_id, channel_id, reward_name)
+VALUES(
+    '110b2338-fef9-47c1-be96-39363e0b5c87',
+    1,
+    'sr_nightbot'
+  ),
+  (
+    '57066ddf-2db9-439f-8a19-561f67c49474',
+    2,
+    'sr_spotify'
+  );
