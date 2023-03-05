@@ -37,9 +37,10 @@ CREATE TABLE IF NOT EXISTS channel_command_perm_overrides (
   channel_name varchar(255) not null
 );
 CREATE TABLE IF NOT EXISTS channel_data (
-  id varchar(30) PRIMARY KEY,
+  id varchar(30),
   data json not null,
-  channel_id int not null references channels(id)
+  channel_id int not null references channels(id),
+  PRIMARY KEY (id, channel_id)
 );
 CREATE TABLE IF NOT EXISTS channel_rewards (
   id serial PRIMARY KEY,
@@ -114,7 +115,11 @@ VALUES (
     '#sangnope'
   );
 INSERT INTO channel_data
-VALUES ('!dumpy', '72', 2);
+SELECT '!dumpy',
+  num::text::json,
+  2
+FROM sangnope
+WHERE id = 1;
 INSERT INTO channel_rewards (reward_id, channel_id, reward_name)
 VALUES(
     '110b2338-fef9-47c1-be96-39363e0b5c87',
