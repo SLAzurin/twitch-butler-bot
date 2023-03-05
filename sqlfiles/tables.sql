@@ -13,9 +13,9 @@ CREATE TABLE IF NOT EXISTS channels (
   channel_name varchar(255) not null
 );
 CREATE TABLE IF NOT EXISTS channel_commands (
-  id SERIAL PRIMARY KEY,
-  channel_id int null references channels(id),
-  command text not null,
+  id SERIAL unique,
+  channel_id int null,
+  command varchar(40) not null,
   special boolean not null,
   basic_output text null,
   permission_level int not null,
@@ -27,31 +27,37 @@ CREATE TABLE IF NOT EXISTS channel_commands (
    4 = mod,
    5 = broadcaster 6 = actualgod
    ) */
-  cooldown int not null
+  cooldown int not null,
+  PRIMARY KEY (channel_id, command),
+  FOREIGN KEY (channel_id) REFERENCES channels(id) on delete cascade
 );
 CREATE TABLE IF NOT EXISTS channel_command_perm_overrides (
   id serial primary key,
-  channel_command_id int not null references channel_commands(id),
+  channel_command_id int not null,
   username varchar(255) not null,
   allowed boolean not null,
-  channel_name varchar(255) not null
+  channel_name varchar(255) not null,
+  FOREIGN KEY (channel_command_id) references channel_commands(id) on delete cascade
 );
 CREATE TABLE IF NOT EXISTS channel_data (
   id varchar(30),
   data json not null,
-  channel_id int not null references channels(id),
-  PRIMARY KEY (id, channel_id)
+  channel_id int not null,
+  PRIMARY KEY (id, channel_id),
+  FOREIGN KEY (channel_id) REFERENCES channels(id) on delete cascade
 );
 CREATE TABLE IF NOT EXISTS channel_rewards (
   id serial PRIMARY KEY,
   reward_id uuid not null,
-  channel_id int not null references channels(id),
-  reward_name varchar(255) not null
+  channel_id int not null,
+  reward_name varchar(255) not null,
+  FOREIGN KEY (channel_id) REFERENCES channels(id) on delete cascade
 );
 CREATE TABLE IF NOT EXISTS channel_command_aliases (
   id serial PRIMARY KEY,
   alias text not null,
-  command_id int not null references channel_commands(id)
+  channel_command_id int not null,
+  FOREIGN KEY (channel_command_id) REFERENCES channel_commands(id) on delete cascade
 );
 /*
  redis cache structure
@@ -71,12 +77,12 @@ INSERT INTO channels
 VALUES (1, '#ericarei'),
   (2, '#sangnope');
 INSERT INTO channel_commands
-VALUES (1, null, '!autosr', true, null, 4, 0),
-  (2, null, '!skip', true, null, 4, 10),
+VALUES (1, 0, '!autosr', true, null, 4, 0),
+  (2, 0, '!skip', true, null, 4, 10),
   (3, 2, '!dumpy', true, null, 0, 10),
   (
     4,
-    null,
+    0,
     '!commands',
     false,
     'https://gist.github.com/SLAzurin/f77a54a22bdd0a70ec2d81938d432944',
@@ -85,7 +91,7 @@ VALUES (1, null, '!autosr', true, null, 4, 0),
   ),
   (
     5,
-    null,
+    0,
     '!azuribot',
     false,
     'desuwa ericareiLurk',
@@ -102,7 +108,7 @@ VALUES (1, null, '!autosr', true, null, 4, 0),
  5 = broadcaster
  6 = actualgod
  ) */
-INSERT INTO channel_command_aliases (alias, command_id)
+INSERT INTO channel_command_aliases (alias, channel_command_id)
 VALUES ('!togglesr', 1),
   ('!next', 2),
   ('!help', 4);
