@@ -41,6 +41,9 @@ services:
     volumes:
       - ./azuriai/state:/root/state
     restart: unless-stopped
+    entrypoint: node
+    command: index.js
+    working_dir: /root
     env_file:
       - .env
   
