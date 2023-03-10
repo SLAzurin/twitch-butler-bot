@@ -140,8 +140,32 @@ func commandDumpy(incomingChannel string, user string, permissionLevel int, brok
 
 // Disable will disable a command from `anyChannelCommands`
 func commandDisable(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
-	// TODO: fix this
-	*msgChan <- chat("This is broken for now ericareiCry", incomingChannel)
+	// find non alias cmd from brokenMessage[1]
+	var rCommand string
+	err := apidb.DB.QueryRow(`select command from channel_commands full outer join channel_command_aliases on channel_commands.id = channel_command_aliases.channel_command_id where command = $1 or alias = $1`, brokenMessage[1]).Scan(&rCommand)
+	if err != nil {
+		*msgChan <- chat("Couldn't find "+brokenMessage[1]+" ericareiCry", incomingChannel)
+		return
+	}
+	// set in redis
+	val, err := apidb.RedisDB.Get(context.Background(), incomingChannel+"_disabled_"+rCommand).Result()
+	if err != nil && err.Error() != "redis: nil" {
+		*msgChan <- chat("500: I couldn't check if this command was disabled ericareiThink", incomingChannel)
+		return
+	}
+	if val == "" {
+		val = "false"
+	}
+	var b bool
+	json.Unmarshal([]byte(val), &b)
+	b = !b
+	newVal, _ := json.Marshal(b)
+	apidb.RedisDB.Set(context.Background(), incomingChannel+"_disabled_"+rCommand, string(newVal), 0)
+	if b {
+		*msgChan <- chat(rCommand + " is now disabled", incomingChannel)
+	} else {
+		*msgChan <- chat(rCommand + " is now enabled", incomingChannel)
+	}
 }
 
 func commandMapleRanks(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
