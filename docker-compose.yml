@@ -32,6 +32,19 @@ services:
       - twitchbutlerbot_redis_data:/data
     restart: unless-stopped
 
+  
+  # executable:
+  #   env_file:
+  #     - .env
+  #   image: golang:1.20-alpine
+  #   volumes:
+  #     - ./:/root/src
+  #   working_dir: /root/src
+  #   entrypoint: sh
+  #   command:
+  #     - -c
+  #     - go run ./cmd/tester/main.go
+
   # pgadmin4:
   #   image: dpage/pgadmin4
   #   restart: unless-stopped
