@@ -16,3 +16,41 @@ func IdentityParser(identity string) *map[string]string {
 	}
 	return &r
 }
+
+func GetPermissionLevel(identityMap *map[string]string) int {
+	/* (
+	0 = any,
+	1 = sub,
+	2 = founder,
+	3 = vip,
+	4 = mod,
+	5 = broadcaster
+	6 = actualgod
+	) */
+	if v, ok := (*identityMap)["display-name"]; ok && v == "AzurinDayo" {
+		return 6
+	}
+	if v, ok := (*identityMap)["badges"]; ok {
+		switch {
+		case strings.Contains(v, "broadcaster/"):
+			return 5
+		}
+	}
+	if v, ok := (*identityMap)["mod"]; ok && v == "1" {
+		return 4
+	}
+	if v, ok := (*identityMap)["vip"]; ok && v == "1" {
+		return 3
+	}
+	if v, ok := (*identityMap)["badges"]; ok {
+		switch {
+		case strings.Contains(v, "founder/"):
+			return 2
+		}
+	}
+	if v, ok := (*identityMap)["subscriber"]; ok && v == "1" {
+		return 1
+	}
+
+	return 0
+}

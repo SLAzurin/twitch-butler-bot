@@ -22,25 +22,11 @@ Adding channel for autosr:
 2) If using spotify, get credentials using cmd/spotifyoauth/main.go, and add channel name spotifyStates
 */
 
-var autosr = map[string]bool{
-	"#ericarei":   true,
-	"#sangnope":   true,
-	"#azurindayo": true,
-}
 
 var spotifyStates = map[string]struct {
 	SpotifyClient *spotify.Client
 	LastSkip      time.Time
-}{
-	"#sangnope": {
-		SpotifyClient: nil,
-		LastSkip:      time.Now(),
-	},
-	"#azurindayo": {
-		SpotifyClient: nil,
-		LastSkip:      time.Now(),
-	},
-}
+}{}
 
 func StartupSpotify() {
 	// setup app client
@@ -59,8 +45,17 @@ func StartupSpotify() {
 	// appClient = spotify.New(httpClient)
 
 	// Read auth and get auth
-	for c := range spotifyStates {
-		jsonFile, err := os.Open("tokens/" + c + ".json")
+	files, err := os.ReadDir("tokens")
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		c := file.Name()
+		jsonFile, err := os.Open("tokens/" + c)
 		if err != nil {
 			log.Println("No auth for", c)
 			continue
@@ -102,16 +97,14 @@ func StartupSpotify() {
 	}
 }
 
-func processSongRequestNightBot(msgChan *chan string, channel string, actualMessage string) {
-	if autosr[channel] {
-		*msgChan <- chat("!sr "+actualMessage, channel)
-	}
+func processSongRequestNightBot(msgChan *chan string, channel string, permissionLevel int, brokenMessage []string) {
+	// TODO: use redis
+	*msgChan <- chat("!sr "+strings.Join(brokenMessage, " "), channel)
+	
 }
 
-func commandSkipSongSpotify(channel string, user string, acutalMessage string) {
-	if !autosr[channel] {
-		return
-	}
+func commandSkipSongSpotify(channel string, user string, permissionLevel int, brokenMessage []string) {
+	// TODO: use redis
 	live, err := utils.ChannelIsLive(strings.Trim(channel, "#"))
 	if err != nil {
 		*msgChan <- chat("I couldn't check if the broadcaster is live ericareiCry", channel)
@@ -150,10 +143,8 @@ func commandSkipSongSpotify(channel string, user string, acutalMessage string) {
 	*msgChan <- chat("Skipped song sangnoWave", channel)
 }
 
-func processSongRequestSpotify(msgChan *chan string, channel string, actualMessage string) {
-	if !autosr[channel] {
-		return
-	}
+func processSongRequestSpotify(msgChan *chan string, channel string, permissionLevel int, brokenMsg []string) {
+	// TODO: use redis
 	live, err := utils.ChannelIsLive(strings.Trim(channel, "#"))
 	if err != nil {
 		*msgChan <- chat("I couldn't check if the broadcaster is live ericareiCry", channel)
@@ -175,7 +166,6 @@ func processSongRequestSpotify(msgChan *chan string, channel string, actualMessa
 		// log.Println("Error: Calling nil state.SpotifyClient fopr channel", channel)
 		return
 	}
-	brokenMsg := strings.Split(actualMessage, " ")
 	TrackID := ""
 	for _, s := range brokenMsg {
 		if strings.Contains(s, "youtube.com") || strings.Contains(s, "youtu.be") {
@@ -198,7 +188,7 @@ func processSongRequestSpotify(msgChan *chan string, channel string, actualMessa
 	// text search
 	if TrackID == "" {
 		ctx := context.Background()
-		result, err := state.SpotifyClient.Search(ctx, strings.Trim(actualMessage, "!sr "), spotify.SearchTypeTrack, spotify.Market("US"))
+		result, err := state.SpotifyClient.Search(ctx, strings.Join(brokenMsg[1:], " "), spotify.SearchTypeTrack, spotify.Market("US"))
 		if err != nil {
 			*msgChan <- chat("Error when searching track "+err.Error()+" sangnoSad", channel)
 			return

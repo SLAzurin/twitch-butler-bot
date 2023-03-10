@@ -137,3 +137,9 @@ VALUES(
     2,
     'sr_spotify'
   );
+-- select *
+-- from channel_commands
+--   full outer join channel_command_aliases ON channel_command_aliases.channel_command_id = channel_commands.id
+--   left join channels on channels.id = channel_commands.channel_id
+--   left join channel_command_perm_overrides ON channel_commands.id = channel_command_perm_overrides.channel_command_id and channel_command_perm_overrides.username = ':stummy!stummy@stummy.tmi.twitch.tv'
+--   where (channel_commands.command = '!sr' or channel_command_aliases.alias = '!sr') and (channel_commands.channel_id = 0 or channels.channel_name = '#sangnope');
