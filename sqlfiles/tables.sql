@@ -75,7 +75,8 @@ CREATE TABLE IF NOT EXISTS channel_command_aliases (
 -- Data to add
 INSERT INTO channels
 VALUES (1, '#ericarei'),
-  (2, '#sangnope');
+  (2, '#sangnope'),
+  (0, '#settings');
 INSERT INTO channel_commands
 VALUES (1, 0, '!autosr', true, null, 4, 0),
   (2, 0, '!skip', true, null, 4, 10),
