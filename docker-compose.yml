@@ -30,6 +30,14 @@ services:
       - twitchbutlerbot_redis_data:/data
     restart: unless-stopped
 
+  # pgadmin4:
+  #   image: dpage/pgadmin4
+  #   restart: unless-stopped
+  #   ports:
+  #     - 8081:80
+  #   environment:
+  #     - PGADMIN_DEFAULT_EMAIL=admin@example.com
+  #     - PGADMIN_DEFAULT_PASSWORD=password
 
 volumes:
   twitchbutlerbot_pg_data:
