@@ -1,6 +1,8 @@
 package api
 
 import (
+	"context"
+	"encoding/json"
 	"log"
 	"math/rand"
 	"os"
@@ -8,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/slazurin/twitch-butler-bot/pkg/data"
+	"github.com/slazurin/twitch-butler-bot/pkg/apidb"
 	"github.com/slazurin/twitch-butler-bot/pkg/utils"
 	"golang.org/x/net/websocket"
 )
@@ -29,7 +31,6 @@ var connectRetries = 0
 var msgChan *chan string
 
 func init() {
-	setAnyChannelCommands()
 	var c = make(chan string)
 	msgChan = &c
 	go func() {
@@ -91,9 +92,10 @@ func processIRC(irc *IRCConn, incoming string, n int) {
 	if len(breakdown) > 3 {
 		incomingChannel = breakdown[3]
 	}
-	actualMessage := ""
+	var brokenMessage []string
 	if len(breakdown) > 4 {
-		actualMessage = strings.Join(breakdown[4:], " ")[1:]
+		brokenMessage = breakdown[4:]
+		brokenMessage[0] = brokenMessage[0][1:] // Removes colon from the first character of the full message
 	}
 
 	switch {
@@ -107,15 +109,11 @@ func processIRC(irc *IRCConn, incoming string, n int) {
 		// handleBan("@ban-duration=1;room-id=254067565;target-user-id=19609203;tmi-sent-ts=1673678936710 :tmi.twitch.tv CLEARCHAT #sangnope :omnoloko")
 		handleBan(incoming, incomingChannel)
 	case strings.Contains(identity, "custom-reward-id="):
-		handleRewards(identity, incomingChannel, user, actualMessage)
-	case (strings.Contains(identity, "broadcaster/") || strings.Contains(identity, "mod=1") || user == ":azurindayo!azurindayo@azurindayo.tmi.twitch.tv") && strings.HasPrefix(actualMessage, "!"):
-		handleModCommand(incomingChannel, user, true, actualMessage)
-	case ((strings.Contains(identity, "founder/") || strings.Contains(identity, "subscriber/")) && strings.HasPrefix(actualMessage, "!")):
-		handleSubCommand(incomingChannel, user, strings.Contains(identity, "mod=1"), actualMessage)
-	case strings.HasPrefix(actualMessage, "!"):
-		handleAnyCommand(incomingChannel, user, strings.Contains(identity, "mod=1"), actualMessage)
+		handleRewards(identity, incomingChannel, user, utils.GetPermissionLevel(utils.IdentityParser(identity)), brokenMessage)
+	case len(brokenMessage) > 0 && strings.HasPrefix(brokenMessage[0], "!"):
+		handleCommand(incomingChannel, user, utils.GetPermissionLevel(utils.IdentityParser(identity)), brokenMessage)
 	case strings.Contains(incoming, "PRIVMSG"):
-		handleMessageScan(incomingChannel, user, actualMessage)
+		handleMessageScan(incomingChannel, user, utils.GetPermissionLevel(utils.IdentityParser(identity)), brokenMessage)
 	}
 	logirc.Println(incoming)
 }
@@ -123,13 +121,25 @@ func processIRC(irc *IRCConn, incoming string, n int) {
 var lastBanTime = map[string]time.Time{}
 
 func handleBan(rawmsg string, channel string) {
-	if !strings.Contains(data.AppCfg.AutoUnbanChannels, channel) {
+	val, err := apidb.RedisDB.Get(context.Background(), channel+"_autounban").Result()
+	if err != nil {
 		return
 	}
+	var autoUnbanUsers []string
+	json.Unmarshal([]byte(val), &autoUnbanUsers)
+
 	bannedUser := rawmsg[strings.LastIndex(rawmsg, ":")+1:]
 	perm := !strings.HasPrefix(rawmsg, "@ban-duration=")
 
-	if strings.Contains(data.AppCfg.AutoUnbans, bannedUser) {
+	toAutoUnban := false
+	for _, v := range autoUnbanUsers {
+		if v == bannedUser {
+			toAutoUnban = true
+			break
+		}
+	}
+
+	if toAutoUnban {
 		logirc.Println("Unbanning " + bannedUser)
 		time.Sleep(time.Second * 2)
 		if perm {

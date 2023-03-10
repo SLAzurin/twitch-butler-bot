@@ -2,12 +2,12 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/slazurin/twitch-butler-bot/pkg/apidb"
@@ -17,106 +17,121 @@ import (
 Add commands under each channel here
 */
 
-var ModCommands = map[string]map[string]func(incomingChannel string, user string, acutalMessage string){
-	"#ericarei": {
-		"!autosr":   toggleAutoSR,
-		"!togglesr": toggleAutoSR,
-	},
-	"#sangnope": {
-		"!autosr":   toggleAutoSR,
-		"!togglesr": toggleAutoSR,
-		"!skip":     commandSkipSongSpotify,
-		"!next":     commandSkipSongSpotify,
-	},
+var commandCoolDowns = map[string]map[string]time.Time{}
+
+var AnyCommands = map[int]func(incomingChannel string, user string, permissionLevel int, brokenMessage []string){
+	1:  toggleAutoSR,
+	2:  commandSkipSongSpotify,
+	3:  commandDumpy,
+	6:  commandProcessSongRequestSpotify,
+	7:  commandMapleRanks,
+	8:  commandDisable,
+	11: commandAzuriAI,
 }
 
-var SubsCommands = map[string]map[string]func(incomingChannel string, user string, acutalMessage string){
-	"#azurindayo": {
-		"!sr": commandProcessSongRequestSpotify,
-	},
-	"#sangnope": {
-		"!sr":    commandProcessSongRequestSpotify,
-		"!dumpy": commandDumpy,
-	},
-}
-
-func setAnyChannelCommands() {
-	anyChannelCommands = map[string]func(incomingChannel string, user string, isMod bool, acutalMessage string){
-		"!mr":       commandMapleRanks,
-		"!disable":  commandDisable,
-		"!help":     commandHelp,
-		"!commands": commandHelp,
-		"!azuribot": commandAzuribot,
-		"!azuriai":  commandAzuriAI,
-	}
-}
-
-var disabledAnyCommands = map[string]map[string]struct{}{}
-
-var anyChannelCommands map[string]func(incomingChannel string, user string, isMod bool, acutalMessage string)
-
-func handleAnyCommand(incomingChannel string, user string, isMod bool, acutalMessage string) {
-	cmdLen := strings.Index(acutalMessage, " ")
-	if cmdLen == -1 {
-		cmdLen = len(acutalMessage)
-	}
-	if _, ok := disabledAnyCommands[incomingChannel][acutalMessage[:cmdLen]]; ok {
+func handleCommand(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
+	sqlQuery := `select channel_commands.command, special, basic_output, channel_command_perm_overrides.allowed, permission_level, channel_commands.id, channel_commands.cooldown
+	from channel_commands
+	  full outer join channel_command_aliases ON channel_command_aliases.channel_command_id = channel_commands.id
+	  left join channels on channels.id = channel_commands.channel_id
+	  left join channel_command_perm_overrides ON channel_commands.id = channel_command_perm_overrides.channel_command_id and channel_command_perm_overrides.username = $1
+	  where (channel_commands.command = $2 or channel_command_aliases.alias = $2) and (channel_commands.channel_id = 0 or channels.channel_name = $3);`
+	stmt, err := apidb.DB.Prepare(sqlQuery)
+	if err != nil {
+		log.Println("Failed 1st prepare at handleCommand", err)
 		return
 	}
-	if f, ok := anyChannelCommands[acutalMessage[:cmdLen]]; ok {
-		f(incomingChannel, user, isMod, acutalMessage)
+	rows, err := stmt.Query(user, brokenMessage[0], incomingChannel)
+	if err != nil {
+		log.Println("Failed 1st query at handleCommand", err)
 		return
 	}
-}
+	defer rows.Close()
 
-func handleModCommand(incomingChannel string, user string, isMod bool, acutalMessage string) {
-	cmdLen := strings.Index(acutalMessage, " ")
-	if cmdLen == -1 {
-		cmdLen = len(acutalMessage)
+	if !rows.Next() {
+		return
 	}
-	if m, ok := ModCommands[incomingChannel]; ok {
-		if f, ok := m[acutalMessage[:cmdLen]]; ok {
-			f(incomingChannel, user, acutalMessage)
+	var rCommand string
+	var rSpecial bool
+	var rBasicOutputP *string
+	var rAllowedP *bool
+	var rPermissionLevel int
+	var rCommandID int
+	var rCooldown int
+	err = rows.Scan(&rCommand, &rSpecial, &rBasicOutputP, &rAllowedP, &rPermissionLevel, &rCommandID, &rCooldown)
+	if err != nil {
+		log.Println("Failed 1st Scan at handleCommand", err)
+		return
+	}
+	if rCommand != "!disable" {
+		val, err := apidb.RedisDB.Get(context.Background(), incomingChannel+"_disabled_"+rCommand).Result()
+		if err != nil && err.Error() != "redis: nil" {
+			// *msgChan <- chat("I couldn't check if this command was disabled ericareiThink", incomingChannel)
+			log.Println("Redis: Couldn't check if", rCommand, "was disabled", err)
+			return
+		}
+		if val == "true" {
 			return
 		}
 	}
-	handleSubCommand(incomingChannel, user, isMod, acutalMessage)
-}
-
-func handleSubCommand(incomingChannel string, user string, isMod bool, acutalMessage string) {
-	cmdLen := strings.Index(acutalMessage, " ")
-	if cmdLen == -1 {
-		cmdLen = len(acutalMessage)
+	if _, ok := commandCoolDowns[incomingChannel]; !ok {
+		commandCoolDowns[incomingChannel] = map[string]time.Time{}
 	}
-	if m, ok := SubsCommands[incomingChannel]; ok {
-		if f, ok := m[acutalMessage[:cmdLen]]; ok {
-			f(incomingChannel, user, acutalMessage)
+	if v, ok := commandCoolDowns[incomingChannel][rCommand]; ok {
+		if time.Now().Add(-1 * time.Second * time.Duration(rCooldown)).Before(v) {
 			return
 		}
 	}
-	handleAnyCommand(incomingChannel, user, isMod, acutalMessage)
+	commandCoolDowns[incomingChannel][rCommand] = time.Now()
+
+	if rAllowedP != nil {
+		if !*rAllowedP {
+			// explicitly not allowed
+			return
+		}
+		// explicitly allowed
+	} else {
+		if permissionLevel < rPermissionLevel {
+			// not enough perms
+			return
+		}
+	}
+	if !rSpecial {
+		*msgChan <- chat(*rBasicOutputP, incomingChannel)
+		return
+	}
+
+	if f, ok := AnyCommands[rCommandID]; ok {
+		f(incomingChannel, user, permissionLevel, brokenMessage)
+	}
 }
 
-func toggleAutoSR(incomingChannel, user, acutalMessage string) {
-	autosr[incomingChannel] = !autosr[incomingChannel]
-	if autosr[incomingChannel] {
+func toggleAutoSR(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
+	val, err := apidb.RedisDB.Get(context.Background(), incomingChannel+"_!autosr").Result()
+	if err != nil && err.Error() != "redis: nil" {
+		log.Println("redis error get", brokenMessage[0], err.Error())
+		return
+	}
+	if val == "" {
+		val = "true"
+	}
+	var b bool
+	json.Unmarshal([]byte(val), &b)
+	b = !b
+	newVal, _ := json.Marshal(b)
+	apidb.RedisDB.Set(context.Background(), incomingChannel+"_"+brokenMessage[0], string(newVal), 0)
+	if b {
 		*msgChan <- chat("autosr is now on", incomingChannel)
 	} else {
 		*msgChan <- chat("autosr is now off", incomingChannel)
 	}
 }
 
-func commandProcessSongRequestSpotify(incomingChannel, user, acutalMessage string) {
-	processSongRequestSpotify(msgChan, incomingChannel, acutalMessage)
+func commandProcessSongRequestSpotify(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
+	processSongRequestSpotify(msgChan, incomingChannel, permissionLevel, brokenMessage)
 }
 
-func commandAzuribot(incomingChannel string, user string, isMod bool, acutalMessage string) {
-	if isMod {
-		*msgChan <- chat("desuwa ericareiLurk", incomingChannel)
-	}
-}
-
-func commandAzuriAI(incomingChannel string, user string, isMod bool, acutalMessage string) {
+func commandAzuriAI(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
 	query := acutalMessage[9:]
 	payload := struct {
 		Content string `json:"content"`
@@ -158,13 +173,9 @@ func commandAzuriAI(incomingChannel string, user string, isMod bool, acutalMessa
 	resp.Body.Close()
 }
 
-func commandDumpy(incomingChannel string, user string, acutalMessage string) {
-	if commandCoolDowns["!dumpy"].Add(10 * time.Second).After(time.Now()) {
-		return
-	}
-	commandCoolDowns["!dumpy"] = time.Now()
+func commandDumpy(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
 	var dumpyCount int64 = 0
-	err := apidb.DB.QueryRow(`SELECT num FROM sangnope WHERE id = 1`).Scan(&dumpyCount)
+	err := apidb.DB.QueryRow(`select data::text::bigint from channel_data WHERE channel_id = 2 and id = '!dumpy'`).Scan(&dumpyCount)
 	if err != nil {
 		*msgChan <- chat("NO DUMPY!?!?!?! ericareiShock2", incomingChannel)
 		log.Println(err)
@@ -174,58 +185,37 @@ func commandDumpy(incomingChannel string, user string, acutalMessage string) {
 }
 
 // Disable will disable a command from `anyChannelCommands`
-func commandDisable(incomingChannel string, user string, isMod bool, acutalMessage string) {
-	if !isMod {
+func commandDisable(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
+	// find non alias cmd from brokenMessage[1]
+	var rCommand string
+	err := apidb.DB.QueryRow(`select command from channel_commands full outer join channel_command_aliases on channel_commands.id = channel_command_aliases.channel_command_id where command = $1 or alias = $1`, brokenMessage[1]).Scan(&rCommand)
+	if err != nil {
+		*msgChan <- chat("Couldn't find "+brokenMessage[1]+" ericareiCry", incomingChannel)
 		return
 	}
-	argv := strings.Split(acutalMessage, " ")
-
-	if len(argv) <= 1 {
-		*msgChan <- chat("No command to disable... ericareiCry", incomingChannel)
+	// set in redis
+	val, err := apidb.RedisDB.Get(context.Background(), incomingChannel+"_disabled_"+rCommand).Result()
+	if err != nil && err.Error() != "redis: nil" {
+		*msgChan <- chat("500: I couldn't check if this command was disabled ericareiThink", incomingChannel)
 		return
 	}
-
-	cmd := argv[1]
-	if !strings.HasPrefix(cmd, "!") {
-		cmd = "!" + cmd
+	if val == "" {
+		val = "false"
 	}
-
-	if _, ok := anyChannelCommands[cmd]; !ok {
-		*msgChan <- chat("Didn't find that command... ericareiCry", incomingChannel)
-		return
-	}
-
-	if _, ok := disabledAnyCommands[incomingChannel]; !ok {
-		disabledAnyCommands[incomingChannel] = map[string]struct{}{}
-	}
-	if _, ok := disabledAnyCommands[incomingChannel][cmd]; ok {
-		delete(disabledAnyCommands[incomingChannel], cmd)
-		*msgChan <- chat("Enabled "+cmd+" ericareiHeart", incomingChannel)
+	var b bool
+	json.Unmarshal([]byte(val), &b)
+	b = !b
+	newVal, _ := json.Marshal(b)
+	apidb.RedisDB.Set(context.Background(), incomingChannel+"_disabled_"+rCommand, string(newVal), 0)
+	if b {
+		*msgChan <- chat(rCommand+" is now disabled", incomingChannel)
 	} else {
-		disabledAnyCommands[incomingChannel][cmd] = struct{}{}
-		*msgChan <- chat("Disabled "+cmd+" ericareiKnife", incomingChannel)
+		*msgChan <- chat(rCommand+" is now enabled", incomingChannel)
 	}
 }
 
-func commandMapleRanks(incomingChannel string, user string, isMod bool, acutalMessage string) {
-	argv := strings.Split(acutalMessage, " ")
-
-	if len(argv) > 1 {
-		*msgChan <- chat("https://mapleranks.com/u/"+argv[1], incomingChannel)
+func commandMapleRanks(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
+	if len(brokenMessage) > 1 {
+		*msgChan <- chat("https://mapleranks.com/u/"+brokenMessage[1], incomingChannel)
 	}
-
-}
-
-// TODO: commandCooldowns isnt channel restricted, it is global. it can work in both Sang's and Erica's ch...
-var commandCoolDowns = map[string]time.Time{
-	"!help":  time.Now().Add(-10 * time.Second),
-	"!dumpy": time.Now().Add(-10 * time.Second),
-}
-
-func commandHelp(channel string, user string, isMod bool, actualMessage string) {
-	if commandCoolDowns["!help"].Add(10 * time.Second).After(time.Now()) {
-		return
-	}
-	commandCoolDowns["!help"] = time.Now()
-	*msgChan <- chat("https://gist.github.com/SLAzurin/f77a54a22bdd0a70ec2d81938d432944", channel)
 }

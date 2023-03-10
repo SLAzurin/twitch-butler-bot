@@ -1,7 +1,7 @@
 version: "2.4"
 
 services:
-  twitch-butler-bot:
+  app:
     build:
       context: .
       dockerfile: Dockerfile
@@ -13,6 +13,7 @@ services:
       - .env
     depends_on:
       - db
+      - redis
   db:
     image: postgres:15-alpine
     # ports:
@@ -23,6 +24,36 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+  redis:
+    image: redis:7-alpine
+    # ports:
+    #   - 0.0.0.0:6379:6379
+    volumes:
+      - twitchbutlerbot_redis_data:/data
+    restart: unless-stopped
+
+  
+  # executable:
+  #   env_file:
+  #     - .env
+  #   image: golang:1.20-alpine
+  #   volumes:
+  #     - ./:/root/src
+  #   working_dir: /root/src
+  #   entrypoint: sh
+  #   command:
+  #     - -c
+  #     - go run ./cmd/tester/main.go
+
+  # pgadmin4:
+  #   image: dpage/pgadmin4
+  #   restart: unless-stopped
+  #   ports:
+  #     - 8081:80
+  #   environment:
+  #     - PGADMIN_DEFAULT_EMAIL=admin@example.com
+  #     - PGADMIN_DEFAULT_PASSWORD=password
 
 volumes:
   twitchbutlerbot_pg_data:
+  twitchbutlerbot_redis_data:

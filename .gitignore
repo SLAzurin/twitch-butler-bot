@@ -9,3 +9,4 @@ tokens
 pg_data
 errorlogs
 profile
+.vscode
