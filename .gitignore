@@ -8,3 +8,4 @@ main
 tokens
 pg_data
 errorlogs
+.vscode
