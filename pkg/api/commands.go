@@ -128,7 +128,7 @@ func commandDumpy(incomingChannel string, user string, permissionLevel int, brok
 	}
 	commandCoolDowns[incomingChannel]["!dumpy"] = time.Now()
 	var dumpyCount int64 = 0
-	err := apidb.DB.QueryRow(`SELECT num FROM sangnope WHERE id = 1`).Scan(&dumpyCount)
+	err := apidb.DB.QueryRow(`select data::text::bigint from channel_data WHERE channel_id = 2 and id = '!dumpy'`).Scan(&dumpyCount)
 	if err != nil {
 		*msgChan <- chat("NO DUMPY!?!?!?! ericareiShock2", incomingChannel)
 		log.Println(err)
