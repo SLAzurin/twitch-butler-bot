@@ -95,7 +95,7 @@ func processIRC(irc *IRCConn, incoming string, n int) {
 	var brokenMessage []string
 	if len(breakdown) > 4 {
 		brokenMessage = breakdown[4:]
-		brokenMessage[0] = breakdown[0][1:] // Removes colon from the first character of the full message
+		brokenMessage[0] = brokenMessage[0][1:] // Removes colon from the first character of the full message
 	}
 
 	switch {
