@@ -128,15 +128,6 @@ func commandProcessSongRequestSpotify(incomingChannel string, user string, permi
 }
 
 func commandDumpy(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
-	if _, ok := commandCoolDowns[incomingChannel]; !ok {
-		commandCoolDowns[incomingChannel] = map[string]time.Time{
-			"!dumpy": time.Now().Add(-1 * time.Second),
-		}
-	}
-	if commandCoolDowns[incomingChannel]["!dumpy"].Add(10 * time.Second).After(time.Now()) {
-		return
-	}
-	commandCoolDowns[incomingChannel]["!dumpy"] = time.Now()
 	var dumpyCount int64 = 0
 	err := apidb.DB.QueryRow(`select data::text::bigint from channel_data WHERE channel_id = 2 and id = '!dumpy'`).Scan(&dumpyCount)
 	if err != nil {
@@ -149,6 +140,8 @@ func commandDumpy(incomingChannel string, user string, permissionLevel int, brok
 
 // Disable will disable a command from `anyChannelCommands`
 func commandDisable(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
+	// TODO: fix this
+	*msgChan <- 
 }
 
 func commandMapleRanks(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
