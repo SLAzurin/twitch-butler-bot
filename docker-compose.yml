@@ -32,6 +32,13 @@ services:
       - twitchbutlerbot_redis_data:/data
     restart: unless-stopped
 
+  azuriai:
+    image: node:18-alpine
+    volumes:
+      - ./state:/root/state
+    restart: unless-stopped
+    env_file:
+      - .env
   
   # executable:
   #   env_file:

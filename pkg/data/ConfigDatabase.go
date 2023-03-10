@@ -17,6 +17,8 @@ type ConfigDatabase struct {
 	PostgresHost           string `env:"CLIENT_POSTGRES_HOST"`
 	RedisPort              string `env:"CLIENT_REDIS_PORT"`
 	RedisHost              string `env:"CLIENT_REDIS_HOST"`
+	AzuriAIPort            string `env:"AZURIAI_PORT"`
+	AzuriAIHost            string `env:"AZURIAI_HOST"`
 }
 
 var AppCfg ConfigDatabase

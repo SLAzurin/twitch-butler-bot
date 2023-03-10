@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/slazurin/twitch-butler-bot/pkg/apidb"
@@ -132,11 +133,11 @@ func commandProcessSongRequestSpotify(incomingChannel string, user string, permi
 }
 
 func commandAzuriAI(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
-	query := acutalMessage[9:]
+	query := brokenMessage[1:]
 	payload := struct {
 		Content string `json:"content"`
 	}{
-		Content: query,
+		Content: strings.Join(query, " "),
 	}
 	jsonPayload, _ := json.Marshal(payload)
 	log.Println("Sending", string(jsonPayload))
