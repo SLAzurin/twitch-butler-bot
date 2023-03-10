@@ -26,7 +26,7 @@ var AnyCommands = map[int]func(incomingChannel string, user string, permissionLe
 }
 
 func handleCommand(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
-	sqlQuery := `select channel_commands.command, special, basic_output, channel_command_perm_overrides.allowed, permission_level, channel_commands.id
+	sqlQuery := `select channel_commands.command, special, basic_output, channel_command_perm_overrides.allowed, permission_level, channel_commands.id, channel_commands.cooldown
 	from channel_commands
 	  full outer join channel_command_aliases ON channel_command_aliases.channel_command_id = channel_commands.id
 	  left join channels on channels.id = channel_commands.channel_id
@@ -53,7 +53,8 @@ func handleCommand(incomingChannel string, user string, permissionLevel int, bro
 	var rAllowedP *bool
 	var rPermissionLevel int
 	var rCommandID int
-	err = rows.Scan(&rCommand, &rSpecial, &rBasicOutputP, &rAllowedP, &rPermissionLevel, &rCommandID)
+	var rCooldown int
+	err = rows.Scan(&rCommand, &rSpecial, &rBasicOutputP, &rAllowedP, &rPermissionLevel, &rCommandID, &rCooldown)
 	if err != nil {
 		log.Println("Failed 1st Scan at handleCommand", err)
 		return
@@ -69,6 +70,15 @@ func handleCommand(incomingChannel string, user string, permissionLevel int, bro
 			return
 		}
 	}
+	if _, ok := commandCoolDowns[incomingChannel]; !ok {
+		commandCoolDowns[incomingChannel] = map[string]time.Time{}
+	}
+	if v, ok := commandCoolDowns[incomingChannel][rCommand]; ok {
+		if time.Now().Add(-1 * time.Second * time.Duration(rCooldown)).Before(v) {
+			return
+		}
+	}
+	commandCoolDowns[incomingChannel][rCommand] = time.Now()
 
 	if rAllowedP != nil {
 		if !*rAllowedP {
