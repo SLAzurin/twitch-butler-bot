@@ -1,6 +1,8 @@
 package api
 
 import (
+	"context"
+	"encoding/json"
 	"log"
 	"strconv"
 	"time"
@@ -23,8 +25,7 @@ var AnyCommands = map[int]func(incomingChannel string, user string, permissionLe
 	8: commandDisable,
 }
 
-
-
+// TODO: lowercase h this
 func HandleCommand(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
 	sqlQuery := `select channel_commands.command, special, basic_output, channel_command_perm_overrides.allowed, permission_level, channel_commands.id
 	from channel_commands
@@ -83,14 +84,27 @@ func HandleCommand(incomingChannel string, user string, permissionLevel int, bro
 
 
 func toggleAutoSR(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
-	// autosr[incomingChannel] = !autosr[incomingChannel]
-	// if autosr[incomingChannel] {
-	// 	*msgChan <- chat("autosr is now on", incomingChannel)
-	// } else {
-	// 	*msgChan <- chat("autosr is now off", incomingChannel)
-	// }
-
-	// TODO: Use redis to set opposite of currentvalue
+	if permissionLevel < 4 {
+		return
+	}
+	val, err := apidb.RedisDB.Get(context.Background(), incomingChannel+"_"+brokenMessage[0]).Result()
+	if err != nil && err.Error() != "redis: nil" {
+		log.Println("redis error get", brokenMessage[0], err.Error())
+		return
+	}
+	if val == "" {
+		val = "true"
+	}
+	var b bool
+	json.Unmarshal([]byte(val), &b)
+	b = !b
+	newVal, _ := json.Marshal(b)
+	apidb.RedisDB.Set(context.Background(), incomingChannel+"_"+brokenMessage[0], string(newVal), 0)
+	if b {
+		*msgChan <- chat("autosr is now on", incomingChannel)
+	} else {
+		*msgChan <- chat("autosr is now off", incomingChannel)
+	}
 }
 
 func commandProcessSongRequestSpotify(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
