@@ -141,7 +141,7 @@ func commandDumpy(incomingChannel string, user string, permissionLevel int, brok
 // Disable will disable a command from `anyChannelCommands`
 func commandDisable(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
 	// TODO: fix this
-	*msgChan <- 
+	*msgChan <- chat("This is broken for now ericareiCry", incomingChannel)
 }
 
 func commandMapleRanks(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
