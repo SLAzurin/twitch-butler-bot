@@ -59,6 +59,18 @@ func HandleCommand(incomingChannel string, user string, permissionLevel int, bro
 		log.Println("Failed 1st Scan at handleCommand", err)
 		return
 	}
+	if rCommand != "!disable" {
+		val, err := apidb.RedisDB.Get(context.Background(), incomingChannel+"_disabled_"+rCommand).Result()
+		if err != nil && err.Error() != "redis: nil" {
+			// *msgChan <- chat("I couldn't check if this command was disabled ericareiThink", incomingChannel)
+			log.Println("Redis: Couldn't check if", rCommand, "was disabled", err)
+			return
+		}
+		if val == "true" {
+			return
+		}
+	}
+
 	if rAllowedP != nil {
 		if !*rAllowedP {
 			// explicitly not allowed
@@ -80,8 +92,6 @@ func HandleCommand(incomingChannel string, user string, permissionLevel int, bro
 		f(incomingChannel, user, permissionLevel, brokenMessage)
 	}
 }
-
-
 
 func toggleAutoSR(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
 	val, err := apidb.RedisDB.Get(context.Background(), incomingChannel+"_!autosr").Result()
