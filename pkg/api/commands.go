@@ -84,10 +84,7 @@ func HandleCommand(incomingChannel string, user string, permissionLevel int, bro
 
 
 func toggleAutoSR(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
-	if permissionLevel < 4 {
-		return
-	}
-	val, err := apidb.RedisDB.Get(context.Background(), incomingChannel+"_"+brokenMessage[0]).Result()
+	val, err := apidb.RedisDB.Get(context.Background(), incomingChannel+"_!autosr").Result()
 	if err != nil && err.Error() != "redis: nil" {
 		log.Println("redis error get", brokenMessage[0], err.Error())
 		return

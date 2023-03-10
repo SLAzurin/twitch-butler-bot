@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/slazurin/twitch-butler-bot/pkg/apidb"
 	"github.com/slazurin/twitch-butler-bot/pkg/data"
 	"github.com/slazurin/twitch-butler-bot/pkg/utils"
 	"github.com/zmb3/spotify/v2"
@@ -17,11 +18,9 @@ import (
 )
 
 /*
-Adding channel for autosr:
-1) Add channel name to autosr map
-2) If using spotify, get credentials using cmd/spotifyoauth/main.go, and add channel name spotifyStates
+Adding channel for autosr: (nightbot just link rewardsmap)
+1) If using spotify, get credentials using cmd/spotifyoauth/main.go, and add them to tokens folder
 */
-
 
 var spotifyStates = map[string]struct {
 	SpotifyClient *spotify.Client
@@ -98,13 +97,19 @@ func StartupSpotify() {
 }
 
 func processSongRequestNightBot(msgChan *chan string, channel string, permissionLevel int, brokenMessage []string) {
-	// TODO: use redis
+	val, err := apidb.RedisDB.Get(context.Background(), channel+"_!autosr").Result()
+	if err != nil && err.Error() != "redis: nil" {
+		*msgChan <- chat("I couldn't check if automatic song requests were enabled ericareiCry", channel)
+		return
+	}
+	if val == "false" {
+		return
+	}
 	*msgChan <- chat("!sr "+strings.Join(brokenMessage, " "), channel)
-	
+
 }
 
 func commandSkipSongSpotify(channel string, user string, permissionLevel int, brokenMessage []string) {
-	// TODO: use redis
 	live, err := utils.ChannelIsLive(strings.Trim(channel, "#"))
 	if err != nil {
 		*msgChan <- chat("I couldn't check if the broadcaster is live ericareiCry", channel)
@@ -144,7 +149,14 @@ func commandSkipSongSpotify(channel string, user string, permissionLevel int, br
 }
 
 func processSongRequestSpotify(msgChan *chan string, channel string, permissionLevel int, brokenMsg []string) {
-	// TODO: use redis
+	val, err := apidb.RedisDB.Get(context.Background(), channel+"_!autosr").Result()
+	if err != nil && err.Error() != "redis: nil" {
+		*msgChan <- chat("I couldn't check if automatic song requests were enabled sangnoSad", channel)
+		return
+	}
+	if val == "false" {
+		return
+	}
 	live, err := utils.ChannelIsLive(strings.Trim(channel, "#"))
 	if err != nil {
 		*msgChan <- chat("I couldn't check if the broadcaster is live ericareiCry", channel)
