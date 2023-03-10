@@ -25,8 +25,7 @@ var AnyCommands = map[int]func(incomingChannel string, user string, permissionLe
 	8: commandDisable,
 }
 
-// TODO: lowercase h this
-func HandleCommand(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
+func handleCommand(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
 	sqlQuery := `select channel_commands.command, special, basic_output, channel_command_perm_overrides.allowed, permission_level, channel_commands.id
 	from channel_commands
 	  full outer join channel_command_aliases ON channel_command_aliases.channel_command_id = channel_commands.id

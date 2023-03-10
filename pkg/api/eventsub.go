@@ -68,7 +68,7 @@ package api
 // }
 
 // func clearHistory() {
-// 	// TODO: for loop through history and wipe all history >10m
+// 	// T0D0: for loop through history and wipe all history >10m
 // }
 
 // func handleSessionWelcome(ws *websocket.Conn, esm data.EventSubMessage) {
