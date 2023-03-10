@@ -2,11 +2,15 @@ package apidb
 
 import (
 	"database/sql"
+
 	_ "github.com/lib/pq"
+	"github.com/redis/go-redis/v9"
 	"github.com/slazurin/twitch-butler-bot/pkg/data"
 )
 
 var DB *sql.DB
+
+var RedisDB *redis.Client
 
 func ManualInit() {
 	var err error
@@ -15,4 +19,10 @@ func ManualInit() {
 	if err != nil {
 		panic(err)
 	}
+
+	RedisDB = redis.NewClient(&redis.Options{
+		Addr:     data.AppCfg.RedisHost + ":" + data.AppCfg.RedisPort,
+		Password: "", // always use no pw, this is a private redis.
+		DB:       0,
+	})
 }
