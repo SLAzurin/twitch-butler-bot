@@ -94,7 +94,9 @@ interface ChatResponse {
 }
 
 async function processAzuriAI(content: string): Promise<string> {
-  const state: ChatState = JSON.parse(fs.readFileSync("state.json").toString());
+  const state: ChatState = JSON.parse(
+    fs.readFileSync("state/state.json").toString()
+  );
   state.messages.push({ role: "user", content });
 
   const { data, status, statusText } = await axios.post<ChatResponse>(
@@ -116,7 +118,7 @@ async function processAzuriAI(content: string): Promise<string> {
     Promise.resolve(currentResult);
   }
   state.messages.push(data.choices[0].message);
-  fs.writeFileSync("state.json", JSON.stringify(state, null, 4));
+  fs.writeFileSync("state/state.json", JSON.stringify(state, null, 4));
 
   return Promise.resolve(data.choices[0].message.content);
 }
