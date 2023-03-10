@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/slazurin/twitch-butler-bot/pkg/apidb"
+	"github.com/slazurin/twitch-butler-bot/pkg/utils"
 )
 
 /*
@@ -133,6 +134,10 @@ func commandProcessSongRequestSpotify(incomingChannel string, user string, permi
 }
 
 func commandAzuriAI(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
+	if live, err := utils.ChannelIsLive(incomingChannel); permissionLevel <= 4 && (err != nil || !live) {
+		*msgChan <- chat("I am sleeping... ericareiSleep", incomingChannel)
+		return
+	}
 	query := brokenMessage[1:]
 	payload := struct {
 		Content string `json:"content"`
