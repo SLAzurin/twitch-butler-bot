@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.ts",
   "scripts": {
-    "start": "cross-env FFBIN=\"C:\\Program Files\\Mozilla Firefox\\firefox.exe\" ts-node index.ts",
-    "start:api": "ts-node restapiedition.ts"
+    "start:api": "ts-node index.ts",
+    "build": "tsc"
   },
   "author": "",
   "license": "MIT",

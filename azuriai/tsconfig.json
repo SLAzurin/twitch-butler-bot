@@ -6,5 +6,6 @@
     "preserveConstEnums": true,
     "sourceMap": true,
     "lib": ["ES2022"]
-  }
+  },
+  "files": ["index.ts"]
 }

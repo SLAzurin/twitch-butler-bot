@@ -1,18 +1,24 @@
-import axios from "axios";
-import * as http from "http";
-import * as fs from "fs";
-import * as dotenv from "dotenv";
+import http from "http";
+import { Builder, By, Key, until, WebElement } from "selenium-webdriver";
+import { Options } from "selenium-webdriver/firefox";
 
-if (fs.existsSync(".env")) {
-  dotenv.config();
-}
+const options = new Options().setProfile("../profile");
+options.setBinary(process.env.FFBIN)
+
+const driver = new Builder()
+  .forBrowser("firefox")
+  .setFirefoxOptions(options)
+  .build();
+
+driver.get("https://chat.openai.com/chat/c5a5bee5-820f-4a54-888c-47bd8765e968");
+// driver.get("https://platform.openai.com/playground?mode=chat")
 
 const hostname = "127.0.0.1";
 const port = 3000;
 
-let currentResult = "";
-
 let isBusy = false;
+
+let currentResult = "";
 
 const server = http.createServer(async (req, res) => {
   switch (req.url) {
@@ -57,7 +63,7 @@ const server = http.createServer(async (req, res) => {
           currentResult = result;
           res.statusCode = 200;
           res.setHeader("Content-Type", "application/json");
-          res.end(JSON.stringify({ result: result.replaceAll("*", "") }));
+          res.end(JSON.stringify({ result }));
         } catch (err: any) {
           isBusy = false;
           res.statusCode = 400;
@@ -78,45 +84,24 @@ server.listen(port, hostname, () => {
   console.log(`Server running at http://${hostname}:${port}/`);
 });
 
-interface ChatState {
-  model: string;
-  messages: { role: string; content: string }[];
-  max_tokens: number;
-  temperature: number;
-}
-
-interface ChatResponse {
-  choices: {
-    message: { role: string; content: string };
-    finish_reason: string;
-    index: number;
-  }[];
-}
-
-async function processAzuriAI(content: string): Promise<string> {
-  const state: ChatState = JSON.parse(fs.readFileSync("state.json").toString());
-  state.messages.push({ role: "user", content });
-
-  const { data, status, statusText } = await axios.post<ChatResponse>(
-    "https://api.openai.com/v1/chat/completions",
-    state,
-    {
-      headers: {
-        Authorization: "Bearer " + process.env.OPENAI_APIKEY,
-        "Content-Type": "application/json",
-      },
-    }
+async function processAzuriAI(input: string): Promise<string> {
+  const textArea = await driver.findElement(By.css("textarea"));
+  await textArea.sendKeys(input + Key.ENTER);
+  await driver.wait(
+    until.elementLocated(
+      By.xpath("//*[contains(text(), 'Regenerate response')]")
+    ),
+    25000
   );
-  if (
-    status != 200 ||
-    data.choices.length < 1 ||
-    data.choices[0].finish_reason != "stop"
-  ) {
-    console.log("SOMETHING HAS GONE TERRIBLY WRONG", status, statusText, data);
-    Promise.resolve(currentResult);
-  }
-  state.messages.push(data.choices[0].message);
-  fs.writeFileSync("state.json", JSON.stringify(state, null, 4));
+  const lastPTag: WebElement = await driver.executeScript(`
+    const pTags = document.getElementsByTagName('p');
+    return pTags[pTags.length - 2];
+  `);
+  const newText = await lastPTag.getAttribute("innerText");
 
-  return Promise.resolve(data.choices[0].message.content);
+  return Promise.resolve(newText);
 }
+
+// enter prompt here document.querySelector(".chat-pg-instructions>div>textarea")
+// toggle message to assistant document.querySelector("span.chat-message-role-text")
+// submit button document.querySelector(".pg-content-footer>button")
