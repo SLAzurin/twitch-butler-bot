@@ -111,7 +111,7 @@ func processIRC(irc *IRCConn, incoming string, n int) {
 	case strings.Contains(identity, "custom-reward-id="):
 		handleRewards(identity, incomingChannel, user, utils.GetPermissionLevel(utils.IdentityParser(identity)), brokenMessage)
 	case strings.HasPrefix(brokenMessage[0], "!"):
-		HandleCommand(incomingChannel, user, utils.GetPermissionLevel(utils.IdentityParser(identity)), brokenMessage)
+		handleCommand(incomingChannel, user, utils.GetPermissionLevel(utils.IdentityParser(identity)), brokenMessage)
 	case strings.Contains(incoming, "PRIVMSG"):
 		handleMessageScan(incomingChannel, user, utils.GetPermissionLevel(utils.IdentityParser(identity)), brokenMessage)
 	}
