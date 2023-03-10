@@ -33,9 +33,11 @@ services:
     restart: unless-stopped
 
   azuriai:
-    image: node:18-alpine
+    build:
+      context: azuriai
+      dockerfile: Dockerfile
     volumes:
-      - ./state:/root/state
+      - ./azuriai/state:/root/state
     restart: unless-stopped
     env_file:
       - .env
