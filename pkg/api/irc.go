@@ -1,6 +1,8 @@
 package api
 
 import (
+	"context"
+	"encoding/json"
 	"log"
 	"math/rand"
 	"os"
@@ -8,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/slazurin/twitch-butler-bot/pkg/data"
+	"github.com/slazurin/twitch-butler-bot/pkg/apidb"
 	"github.com/slazurin/twitch-butler-bot/pkg/utils"
 	"golang.org/x/net/websocket"
 )
@@ -119,13 +121,25 @@ func processIRC(irc *IRCConn, incoming string, n int) {
 var lastBanTime = map[string]time.Time{}
 
 func handleBan(rawmsg string, channel string) {
-	if !strings.Contains(data.AppCfg.AutoUnbanChannels, channel) {
+	val, err := apidb.RedisDB.Get(context.Background(), channel+"_autounban").Result()
+	if err != nil {
 		return
 	}
+	var autoUnbanUsers []string
+	json.Unmarshal([]byte(val), &autoUnbanUsers)
+
 	bannedUser := rawmsg[strings.LastIndex(rawmsg, ":")+1:]
 	perm := !strings.HasPrefix(rawmsg, "@ban-duration=")
 
-	if strings.Contains(data.AppCfg.AutoUnbans, bannedUser) {
+	toAutoUnban := false
+	for _, v := range autoUnbanUsers {
+		if v == bannedUser {
+			toAutoUnban = true
+			break
+		}
+	}
+
+	if toAutoUnban {
 		logirc.Println("Unbanning " + bannedUser)
 		time.Sleep(time.Second * 2)
 		if perm {
