@@ -266,11 +266,13 @@ func commandAllowOrDeny(allow bool) func(incomingChannel string, user string, pe
 			*msgChan <- chat("500: Did you spell the command name or username properly? sangnoDead", incomingChannel)
 			return
 		}
-		if rOverrideID.Valid && rAllowed.Bool != allow {
+		if rOverrideID.Valid {
 			// entry exists and different than allow
-			apidb.DB.Exec("update channel_command_perm_overrides set allowed = $1 where id = $2", allow, rOverrideID.Value)
+			if allow != rAllowed.Bool {
+				apidb.DB.Exec("update channel_command_perm_overrides set allowed = $1 where id = $2", allow, rOverrideID.Value)
+			}
 		} else {
-			apidb.DB.Exec("insert into channel_command_perm_overrides (channel_command_id, allowed, channel_name) VALUES ($1, $2, $3)", rCommandID, allow, incomingChannel)
+			apidb.DB.Exec("insert into channel_command_perm_overrides (channel_command_id, username, allowed, channel_name) VALUES ($1, $2, $3, $4)", rCommandID, targetUser, allow, incomingChannel)
 		}
 		if allow {
 			*msgChan <- chat(brokenMessage[1]+" is now allowed to use "+cmd+" ericareiHeart", incomingChannel)
