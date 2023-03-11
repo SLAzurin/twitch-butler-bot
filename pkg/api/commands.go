@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"io"
 	"log"
@@ -29,6 +30,8 @@ var AnyCommands = map[int]func(incomingChannel string, user string, permissionLe
 	6:  commandProcessSongRequestSpotify,
 	7:  commandMapleRanks,
 	8:  commandDisable,
+	9:  commandAllowOrDeny(true),
+	10: commandAllowOrDeny(false),
 	11: commandAzuriAI,
 }
 
@@ -37,7 +40,7 @@ func handleCommand(incomingChannel string, user string, permissionLevel int, bro
 	from channel_commands
 	  full outer join channel_command_aliases ON channel_command_aliases.channel_command_id = channel_commands.id
 	  left join channels on channels.id = channel_commands.channel_id
-	  left join channel_command_perm_overrides ON channel_commands.id = channel_command_perm_overrides.channel_command_id and channel_command_perm_overrides.username = $1
+	  left join channel_command_perm_overrides ON channel_commands.id = channel_command_perm_overrides.channel_command_id and channel_command_perm_overrides.username = $1 and channel_command_perm_overrides.channel_name = $3
 	  where (channel_commands.command = $2 or channel_command_aliases.alias = $2) and (channel_commands.channel_id = 0 or channels.channel_name = $3);`
 	stmt, err := apidb.DB.Prepare(sqlQuery)
 	if err != nil {
@@ -226,5 +229,53 @@ func commandDisable(incomingChannel string, user string, permissionLevel int, br
 func commandMapleRanks(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
 	if len(brokenMessage) > 1 {
 		*msgChan <- chat("https://mapleranks.com/u/"+brokenMessage[1], incomingChannel)
+	}
+}
+
+func commandAllowOrDeny(allow bool) func(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
+	return func(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
+		if len(brokenMessage) < 3 {
+			*msgChan <- chat("Syntax error: !allow username !command", incomingChannel)
+			return
+		}
+		cmd := brokenMessage[2]
+		if !strings.HasPrefix(cmd, "!") {
+			cmd = "!" + cmd
+		}
+		targetUser := strings.ToLower(strings.TrimPrefix(brokenMessage[1], "@"))
+		targetUser = ":" + targetUser + "!" + targetUser + "@" + targetUser + ".tmi.twitch.tv"
+		log.Println(allow, targetUser, cmd)
+		var rCommandID int
+		var rCommand string
+		var rAllowed sql.NullBool
+		var rOverrideID sql.NullInt32
+		err := apidb.DB.QueryRow(
+			`select
+			channel_commands.id,
+			channel_commands.command,
+			channel_command_perm_overrides.allowed,
+			channel_command_perm_overrides.id
+		from channel_commands
+		full outer join channel_command_aliases ON channel_command_aliases.channel_command_id = channel_commands.id
+		left join channels on channels.id = channel_commands.channel_id
+		left join channel_command_perm_overrides ON channel_commands.id = channel_command_perm_overrides.channel_command_id and channel_command_perm_overrides.username = $1 and channel_command_perm_overrides.channel_name = $3
+		where (channel_commands.command = $2 or channel_command_aliases.alias = $2)
+		and (channel_commands.channel_id = 0 or channels.channel_name = $3);`, targetUser, cmd, incomingChannel).Scan(&rCommandID, &rCommand, &rAllowed, &rOverrideID)
+		if err != nil {
+			log.Println("Error main query commandAllowOrDeny", err)
+			*msgChan <- chat("500: Did you spell the command name or username properly? sangnoDead", incomingChannel)
+			return
+		}
+		if rOverrideID.Valid && rAllowed.Bool != allow {
+			// entry exists and different than allow
+			apidb.DB.Exec("update channel_command_perm_overrides set allowed = $1 where id = $2", allow, rOverrideID.Value)
+		} else {
+			apidb.DB.Exec("insert into channel_command_perm_overrides (channel_command_id, allowed, channel_name) VALUES ($1, $2, $3)", rCommandID, allow, incomingChannel)
+		}
+		if allow {
+			*msgChan <- chat(brokenMessage[1]+" is now allowed to use "+cmd+" ericareiHeart", incomingChannel)
+		} else {
+			*msgChan <- chat(brokenMessage[1]+" is now prohibited to use "+cmd+" sangnoMad", incomingChannel)
+		}
 	}
 }
