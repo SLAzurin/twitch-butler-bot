@@ -102,6 +102,7 @@ VALUES (1, 0, '!autosr', true, null, 4, 0),
   (6, 2, '!sr', true, null, 0, 2),
   (7, 0, '!mr', true, null, 0, 1),
   (8, 0, '!disable', true, null, 4, 0);
+INSERT INTO channel_commands VALUES (11, 0, '!azuriai', true, null, 0, 5);
 /* (
  0 = any,
  1 = sub,
