@@ -1,13 +1,18 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"log"
+	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/slazurin/twitch-butler-bot/pkg/apidb"
+	"github.com/slazurin/twitch-butler-bot/pkg/utils"
 )
 
 /*
@@ -17,12 +22,13 @@ Add commands under each channel here
 var commandCoolDowns = map[string]map[string]time.Time{}
 
 var AnyCommands = map[int]func(incomingChannel string, user string, permissionLevel int, brokenMessage []string){
-	1: toggleAutoSR,
-	2: commandSkipSongSpotify,
-	3: commandDumpy,
-	6: commandProcessSongRequestSpotify,
-	7: commandMapleRanks,
-	8: commandDisable,
+	1:  toggleAutoSR,
+	2:  commandSkipSongSpotify,
+	3:  commandDumpy,
+	6:  commandProcessSongRequestSpotify,
+	7:  commandMapleRanks,
+	8:  commandDisable,
+	11: commandAzuriAI,
 }
 
 func handleCommand(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
@@ -127,6 +133,52 @@ func commandProcessSongRequestSpotify(incomingChannel string, user string, permi
 	processSongRequestSpotify(msgChan, incomingChannel, permissionLevel, brokenMessage)
 }
 
+func commandAzuriAI(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
+	if live, err := utils.ChannelIsLive(incomingChannel); permissionLevel <= 4 && (err != nil || !live) {
+		*msgChan <- chat("I am sleeping... ericareiSleep", incomingChannel)
+		return
+	}
+	query := brokenMessage[1:]
+	payload := struct {
+		Content string `json:"content"`
+	}{
+		Content: strings.Join(query, " "),
+	}
+	jsonPayload, _ := json.Marshal(payload)
+	log.Println("Sending", string(jsonPayload))
+	req, err := http.NewRequest("POST", "http://localhost:3000/azuriai", bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	var response struct {
+		Result string `json:"result"`
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode != 200 {
+		log.Println(string(body))
+		*msgChan <- chat("I-I don't know what you're talking about! ericareiPout", incomingChannel)
+		return
+	}
+
+	json.Unmarshal(body, &response)
+
+	*msgChan <- chat(response.Result, incomingChannel)
+
+	resp.Body.Close()
+}
+
 func commandDumpy(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
 	var dumpyCount int64 = 0
 	err := apidb.DB.QueryRow(`select data::text::bigint from channel_data WHERE channel_id = 2 and id = '!dumpy'`).Scan(&dumpyCount)
@@ -162,9 +214,9 @@ func commandDisable(incomingChannel string, user string, permissionLevel int, br
 	newVal, _ := json.Marshal(b)
 	apidb.RedisDB.Set(context.Background(), incomingChannel+"_disabled_"+rCommand, string(newVal), 0)
 	if b {
-		*msgChan <- chat(rCommand + " is now disabled", incomingChannel)
+		*msgChan <- chat(rCommand+" is now disabled", incomingChannel)
 	} else {
-		*msgChan <- chat(rCommand + " is now enabled", incomingChannel)
+		*msgChan <- chat(rCommand+" is now enabled", incomingChannel)
 	}
 }
 

@@ -14,6 +14,8 @@ services:
     depends_on:
       - db
       - redis
+      - azuriai
+
   db:
     image: postgres:15-alpine
     # ports:
@@ -32,6 +34,18 @@ services:
       - twitchbutlerbot_redis_data:/data
     restart: unless-stopped
 
+  azuriai:
+    build:
+      context: azuriai
+      dockerfile: Dockerfile
+    volumes:
+      - ./azuriai/state:/root/state
+    restart: unless-stopped
+    entrypoint: node
+    command: index.js
+    working_dir: /root
+    env_file:
+      - .env
   
   # executable:
   #   env_file:
