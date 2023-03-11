@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/slazurin/twitch-butler-bot/pkg/apidb"
+	"github.com/slazurin/twitch-butler-bot/pkg/data"
 	"github.com/slazurin/twitch-butler-bot/pkg/utils"
 )
 
@@ -146,7 +147,7 @@ func commandAzuriAI(incomingChannel string, user string, permissionLevel int, br
 	}
 	jsonPayload, _ := json.Marshal(payload)
 	log.Println("Sending", string(jsonPayload))
-	req, err := http.NewRequest("POST", "http://localhost:3000/azuriai", bytes.NewBuffer(jsonPayload))
+	req, err := http.NewRequest("POST", "http://"+data.AppCfg.AzuriAIHost+":"+data.AppCfg.AzuriAIPort+"/azuriai", bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		log.Println(err)
 		return
