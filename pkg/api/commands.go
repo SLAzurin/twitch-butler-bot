@@ -135,7 +135,7 @@ func commandProcessSongRequestSpotify(incomingChannel string, user string, permi
 }
 
 func commandAzuriAI(incomingChannel string, user string, permissionLevel int, brokenMessage []string) {
-	if live, err := utils.ChannelIsLive(incomingChannel); err != nil || !live {
+	if live, err := utils.ChannelIsLive(incomingChannel[1:]); err != nil || !live {
 		if permissionLevel < 4 {
 			*msgChan <- chat("I am sleeping... ericareiSleep", incomingChannel)
 			return
