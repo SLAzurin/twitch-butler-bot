@@ -117,8 +117,9 @@ async function processAzuriAI(content: string): Promise<string> {
     console.log("SOMETHING HAS GONE TERRIBLY WRONG", status, statusText, data);
     Promise.resolve(currentResult);
   }
-  state.messages.push(data.choices[0].message);
-  fs.writeFileSync("state/state.json", JSON.stringify(state, null, 4));
+  // Should not save new state, doesnt work when requests are too big
+  // state.messages.push(data.choices[0].message);
+  // fs.writeFileSync("state/state.json", JSON.stringify(state, null, 4));
 
   return Promise.resolve(data.choices[0].message.content);
 }
