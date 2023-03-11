@@ -128,12 +128,11 @@ func handleBan(rawmsg string, channel string) {
 	var autoUnbanUsers []string
 	json.Unmarshal([]byte(val), &autoUnbanUsers)
 
-	bannedUser := rawmsg[strings.LastIndex(rawmsg, ":")+1:]
-	perm := !strings.HasPrefix(rawmsg, "@ban-duration=")
+	bannedUser := strings.ToLower(rawmsg[strings.LastIndex(rawmsg, ":")+1:])
 
 	toAutoUnban := false
 	for _, v := range autoUnbanUsers {
-		if v == bannedUser {
+		if strings.ToLower(v) == bannedUser {
 			toAutoUnban = true
 			break
 		}
@@ -142,11 +141,7 @@ func handleBan(rawmsg string, channel string) {
 	if toAutoUnban {
 		logirc.Println("Unbanning " + bannedUser)
 		time.Sleep(time.Second * 2)
-		if perm {
-			*msgChan <- chat("/unban "+bannedUser, channel)
-		} else {
-			*msgChan <- chat("/untimeout "+bannedUser, channel)
-		}
+		*msgChan <- chat("/unban "+bannedUser, channel)
 
 		oldTime := time.Now().Add(-6 * time.Second)
 		if t, ok := lastBanTime[channel]; ok {
