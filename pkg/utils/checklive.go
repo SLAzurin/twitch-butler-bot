@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/slazurin/twitch-butler-bot/pkg/data"
 )
@@ -12,6 +13,7 @@ import (
 // https://api.twitch.tv/helix/streams?user_login=ericarei
 
 func ChannelIsLive(channel string) (bool, error) {
+	channel = strings.TrimPrefix(channel, "#")
 	client := &http.Client{}
 
 	req, err := http.NewRequest("GET", "https://api.twitch.tv/helix/streams?user_login="+channel, nil)
