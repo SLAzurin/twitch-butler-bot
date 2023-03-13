@@ -85,7 +85,7 @@ func StartupSpotify() {
 			spotifyauth.WithClientSecret(data.AppCfg.SpotifySecret),
 		).Client(context.Background(), &auth))
 
-		spotifyStates[c] = struct {
+		spotifyStates[strings.TrimSuffix(c, ".json")] = struct {
 			SpotifyClient *spotify.Client
 			LastSkip      time.Time
 		}{
