@@ -12,7 +12,7 @@ Main entrypoint
 */
 var exitCh *chan struct{}
 
-func Run(_exitCh *chan struct{}) {
+func Run(_exitCh *chan struct{}, f func()) {
 	exitCh = _exitCh
 	var err error
 
@@ -48,5 +48,5 @@ func Run(_exitCh *chan struct{}) {
 	*msgChan <- "NICK " + data.AppCfg.TwitchAccount
 	*msgChan <- "JOIN " + data.AppCfg.TwitchChannel
 
-	go ircMain()
+	go f()
 }

@@ -45,7 +45,7 @@ func init() {
 	}()
 }
 
-func ircMain() {
+func AzuriBot() {
 	var err error
 	for {
 		var msg = make([]byte, 1024)
