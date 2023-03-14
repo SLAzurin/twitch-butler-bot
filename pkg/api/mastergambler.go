@@ -26,10 +26,14 @@ var gambleChan = make(chan struct {
 
 func MasterGambler() {
 	if v := os.Getenv("POINTS"); v != "" && os.Getenv("CHANNEL") != "" {
-		gamblingState.remainingMoney, _ = strconv.ParseUint(v, 10, 64)
+		if len(v) >= 11 {
+			gamblingState.remainingMoney = 10000000000
+		} else {
+			gamblingState.remainingMoney, _ = strconv.ParseUint(v, 10, 64)
+		}
 		go func() {
 			time.Sleep(5 * time.Second)
-			if gamblingState.remainingMoney/100*gamblingState.percentageToBet > 2147483647 {
+			if len(v) >= 11 || gamblingState.remainingMoney/100*gamblingState.percentageToBet > 2147483647 {
 				*msgChan <- chat("!gamble 2147483647", os.Getenv("CHANNEL"))
 			} else {
 				*msgChan <- chat("!gamble "+strconv.FormatUint(gamblingState.remainingMoney/100*gamblingState.percentageToBet, 10), os.Getenv("CHANNEL"))
@@ -103,11 +107,19 @@ func processIRCGambler(irc *IRCConn, incoming string, n int) {
 		logirc.Println(strings.Replace(incoming, "PING", "PONG", 1))
 	case incomingType == "PRIVMSG" && user == ":streamlabs!streamlabs@streamlabs.tmi.twitch.tv" && strings.Contains(strings.ToLower(incoming), "@azurindayo") && (strings.HasSuffix(incoming, "Seeds") || strings.HasSuffix(incoming, "Seeds.")):
 		logirc.Println("Remaining seeds", brokenMessage[len(brokenMessage)-2])
-		gamblingState.remainingMoney, _ = strconv.ParseUint(brokenMessage[len(brokenMessage)-2], 10, 64)
-		logirc.Println("GAMBLING MODE ON!", gamblingState.remainingMoney, gamblingState.remainingMoney*100/gamblingState.percentageToBet, strings.Join(brokenMessage, " "))
-		gambleChan <- struct {
-			amt     uint64
-			channel string
-		}{amt: gamblingState.remainingMoney / 100 * gamblingState.percentageToBet, channel: incomingChannel}
+		if len(brokenMessage[len(brokenMessage)-2]) >= 11 {
+			logirc.Println("GAMBLING MODE ON! MAXIMUM MODE")
+			gambleChan <- struct {
+				amt     uint64
+				channel string
+			}{amt: 2147483647, channel: incomingChannel}
+		} else {
+			gamblingState.remainingMoney, _ = strconv.ParseUint(brokenMessage[len(brokenMessage)-2], 10, 64)
+			logirc.Println("GAMBLING MODE ON!", gamblingState.remainingMoney, gamblingState.remainingMoney*100/gamblingState.percentageToBet, strings.Join(brokenMessage, " "))
+			gambleChan <- struct {
+				amt     uint64
+				channel string
+			}{amt: gamblingState.remainingMoney / 100 * gamblingState.percentageToBet, channel: incomingChannel}
+		}
 	}
 }
